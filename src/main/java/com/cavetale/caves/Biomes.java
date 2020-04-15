@@ -1,0 +1,71 @@
+package com.cavetale.caves;
+
+import java.util.EnumMap;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.bukkit.block.Biome;
+import org.bukkit.block.Block;
+import org.bukkit.plugin.java.JavaPlugin;
+
+@RequiredArgsConstructor
+final class Biomes {
+    private final JavaPlugin plugin;
+    final Map<Biome, Type> biomes = new EnumMap<>(Biome.class);
+    boolean reportDuplicateBiomes = false;
+
+    enum Type {
+        COLD("SNOW", "ICE"), // done
+        MESA("SAVANNA", "BADLAND"),
+        MUSHROOM("MUSHROOM"), // done
+        DESERT("DESERT"), // done
+        JUNGLE("JUNGLE"), // done
+        OCEAN("OCEAN", "BEACH", "SHORE"), // done
+        MOUNTAIN("MOUNTAIN"), //
+        SWAMP("SWAMP"),
+        DARK_FOREST("DARK_FOREST"),
+        SPRUCE("TAIGA", "SPRUCE"),
+        PLAINS("PLAINS", "SUNFLOWER"),
+        FOREST("FOREST", "WOOD", "BIRCH"),
+        RIVER("RIVER"),
+        NETHER("NETHER"),
+        END("END", "VOID");
+
+        public final String[] keywords;
+
+        Type(final String... keywords) {
+            this.keywords = keywords;
+        }
+    }
+
+    void load() {
+        for (Biome biome : Biome.values()) {
+            for (Type type : Type.values()) {
+                String name = biome.name();
+                for (String keyword : type.keywords) {
+                    if (name.contains(keyword)) {
+                        Type exist = biomes.get(biome);
+                        if (reportDuplicateBiomes && exist != null && exist != type) {
+                            plugin.getLogger().info("Duplicate: " + biome + ": "
+                                             + biomes.get(biome) + ", " + type);
+                            continue;
+                        }
+                        biomes.put(biome, type);
+                    }
+                }
+            }
+            if (!biomes.containsKey(biome)) {
+                plugin.getLogger().info("No matching biome: " + biome);
+            } else {
+                plugin.getLogger().info("Biome " + biome + " => " + biomes.get(biome));
+            }
+        }
+    }
+
+    public Type of(Biome biome) {
+        return biomes.get(biome);
+    }
+
+    public Type of(Block block) {
+        return biomes.get(block.getBiome());
+    }
+}
