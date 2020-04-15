@@ -16,12 +16,6 @@
     <finalName>${project.name}</finalName>
     <plugins>
 
-      <!-- Surefire for Testing -->
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.0</version>
-      </plugin>
-
       <!-- Java 8 -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
