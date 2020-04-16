@@ -20,8 +20,8 @@ final class Biomes {
         DESERT("DESERT"), // done
         JUNGLE("JUNGLE"), // done
         OCEAN("OCEAN", "BEACH", "SHORE"), // done
-        MOUNTAIN("MOUNTAIN"),
-        SWAMP("SWAMP"), //
+        MOUNTAIN("MOUNTAIN"), // done
+        SWAMP("SWAMP"), // done
         DARK_FOREST("DARK_FOREST"),
         SPRUCE("TAIGA", "SPRUCE"),
         PLAINS("PLAINS", "SUNFLOWER"),

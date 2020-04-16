@@ -1,7 +1,9 @@
 package com.cavetale.caves;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -76,9 +78,7 @@ final class CaveDecorator {
                             wallBlocks.remove(block);
                             continue BLOCK;
                         }
-                        if (nbor.getType() == Material.CAVE_AIR
-                            || (mat.isTransparent() && nbor.getLightFromSky() == 0)
-                            || (nbor.isLiquid() && nbor.getLightFromSky() == 0)) {
+                        if (nbor.getType() == Material.CAVE_AIR) {
                             Set<BlockFace> faceSet = wallBlocks.get(block);
                             if (faceSet == null) {
                                 faceSet = EnumSet.noneOf(BlockFace.class);
@@ -404,8 +404,82 @@ final class CaveDecorator {
         return true;
     }
 
+    /**
+     * Abandoned mineshafts with wooden rafters. The walls lit by
+     * redstone torches, the rafters rarely by lanterns.
+     */
     boolean wallBlockMountain(Block block, Set<BlockFace> faces, int height,
                               boolean floor, boolean ceiling, boolean wall) {
+        if (ceiling) {
+            double noiseL = noiseGenerator.noise(block.getX() / 96.0,
+                                                 block.getZ() / 96.0);
+            int dx = (int) (noiseL * 5.0);
+            int dz = (int) (noiseL * 5.0);
+            if (dx < 0) dx += 6;
+            if (dz < 0) dz += 6;
+            boolean raft = height < 8
+                && Blocks.makeRaftersBelow(block, 6, dx, dz, b -> {
+                        double noise = getNoise(b, 3);
+                        if (noise < 0.2) {
+                            return Material.OAK_LOG;
+                        } else {
+                            return Material.STRIPPED_OAK_LOG;
+                        }
+                    });
+            if (height > 2 && raft) {
+                Block below = block.getRelative(0, -2, 0);
+                if (below.isEmpty()) {
+                    double noiseS = getNoise(below, 1.0);
+                    if (Math.abs(noiseS) < 0.005) {
+                        set(below, Blocks.hangingLantern(true));
+                    }
+                }
+            }
+        } else if (floor) {
+            double noise = getNoise(block, 8.0);
+            if (noise < -0.5) {
+                set(block, Material.GRAVEL);
+            } else if (noise < 0) {
+                set(block, Material.STONE);
+            } else if (noise > 0.6) {
+                set(block, Material.MOSSY_COBBLESTONE);
+            } else if (noise > 0.2) {
+                set(block, Material.COBBLESTONE);
+            } else {
+                set(block, Material.SMOOTH_STONE);
+            }
+        } else if (wall) {
+            double noiseS = getNoise(block, 1.0);
+            if (noiseS > 0.5) {
+                set(block, Material.MOSSY_STONE_BRICKS);
+            } else if (noiseS < -0.5) {
+                set(block, Material.CRACKED_STONE_BRICKS);
+            } else {
+                double noise = getNoise(block, 8.0);
+                if (noise < 0) {
+                    set(block, Material.STONE);
+                } else {
+                    set(block, Material.ANDESITE);
+                }
+            }
+            if (Math.abs(noiseS) > 0.75) {
+                List<BlockFace> hor = new ArrayList<>(4);
+                for (BlockFace face : HORIZONTAL_NEIGHBORS) {
+                    if (faces.contains(face)) hor.add(face);
+                }
+                if (!hor.isEmpty()) {
+                    BlockFace face = hor.get(random.nextInt(hor.size()));
+                    Block torch = block.getRelative(face);
+                    if (torch.isEmpty()) {
+                        if (noiseS > 0.8) {
+                            set(torch, Blocks.direct(Material.WALL_TORCH, face));
+                        } else {
+                            set(torch, Blocks.direct(Material.REDSTONE_WALL_TORCH, face));
+                        }
+                    }
+                }
+            }
+        }
         return true;
     }
 
@@ -523,27 +597,6 @@ final class CaveDecorator {
             }
         }
         return true;
-    }
-
-    void makeRaftersBelow(Material mat, Block block, int interval, boolean beams) {
-        boolean rafterX = block.getX() % interval == 0;
-        boolean rafterZ = block.getZ() % interval == 0;
-        Block pillar = block.getRelative(0, -1, 0);
-        if (rafterX && rafterZ) {
-            if (!beams) {
-                pillar.setBlockData(Blocks.oriented(mat, Axis.X), false);
-            } else {
-                BlockData data = Blocks.oriented(mat, Axis.Y);
-                while (pillar.isEmpty() || pillar.isLiquid() || pillar.getType().isTransparent()) {
-                    pillar.setBlockData(data, false);
-                    pillar = pillar.getRelative(0, -1, 0);
-                }
-            }
-        } else if (rafterX) {
-            pillar.setBlockData(Blocks.oriented(mat, Axis.Z), false);
-        } else if (rafterZ) {
-            pillar.setBlockData(Blocks.oriented(mat, Axis.X), false);
-        }
     }
 
     double getNoise(Block block, double scale) {
