@@ -14,7 +14,7 @@ final class Biomes {
     boolean reportDuplicateBiomes = false;
 
     enum Type {
-        COLD("SNOW", "ICE"), // done
+        COLD("SNOW", "ICE", "FROZEN"), // done
         MESA("SAVANNA", "BADLAND"),
         MUSHROOM("MUSHROOM"), // done
         DESERT("DESERT"), // done
@@ -22,13 +22,13 @@ final class Biomes {
         OCEAN("OCEAN", "BEACH", "SHORE"), // done
         MOUNTAIN("MOUNTAIN"), // done
         SWAMP("SWAMP"), // done
-        DARK_FOREST("DARK_FOREST"),
-        SPRUCE("TAIGA", "SPRUCE"),
-        PLAINS("PLAINS", "SUNFLOWER"),
-        FOREST("FOREST", "WOOD", "BIRCH"),
-        RIVER("RIVER"),
-        NETHER("NETHER"),
-        END("END", "VOID");
+        DARK_FOREST("DARK_FOREST"), // swamp
+        SPRUCE("TAIGA", "SPRUCE"), // mountain
+        PLAINS("PLAINS", "SUNFLOWER"), // flowers
+        FOREST("FOREST", "WOOD", "BIRCH"), // flowers
+        RIVER("RIVER"), // flowers
+        NETHER("NETHER"), // unused
+        END("END", "VOID"); // unused
 
         public final String[] keywords;
 

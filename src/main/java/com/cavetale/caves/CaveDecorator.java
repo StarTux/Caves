@@ -12,11 +12,15 @@ import lombok.Setter;
 import org.bukkit.Axis;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.TreeType;
 import org.bukkit.World;
+import org.bukkit.block.Beehive;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Bee;
+import org.bukkit.entity.EntityType;
 import org.bukkit.util.noise.SimplexNoiseGenerator;
 import static com.cavetale.caves.Blocks.set;
 
@@ -73,8 +77,7 @@ final class CaveDecorator {
                     }
                     for (BlockFace face : FACING_NEIGHBORS) {
                         Block nbor = block.getRelative(face);
-                        Material mat = block.getType();
-                        if (mat == Material.AIR) {
+                        if (nbor.getType() == Material.AIR) {
                             wallBlocks.remove(block);
                             continue BLOCK;
                         }
@@ -85,9 +88,17 @@ final class CaveDecorator {
                                 wallBlocks.put(block, faceSet);
                             }
                             faceSet.add(face);
-                        } else if (nbor.getRelative(face).getType() == Material.CAVE_AIR) {
-                            if (!wallBlocks.containsKey(block)) {
-                                wallBlocks.put(block, EnumSet.noneOf(BlockFace.class));
+                        }
+                        if (isInside(nbor)) {
+                            for (BlockFace face2 : FACING_NEIGHBORS) {
+                                if (nbor.getRelative(face2).getType() == Material.CAVE_AIR) {
+                                    Set<BlockFace> faceSet = wallBlocks.get(block);
+                                    if (faceSet == null) {
+                                        faceSet = EnumSet.noneOf(BlockFace.class);
+                                        wallBlocks.put(block, faceSet);
+                                    }
+                                    faceSet.add(face);
+                                }
                             }
                         }
                     }
@@ -99,6 +110,16 @@ final class CaveDecorator {
         }
     }
 
+    boolean isInside(Block block) {
+        if (block.isEmpty() || block.isLiquid()) return true;
+        Material mat = block.getType();
+        if (!mat.isSolid() || !mat.isOccluding() || mat.isTransparent()) return true;
+        if (Tag.FENCES.isTagged(mat)) return true;
+        if (Tag.FLOWERS.isTagged(mat)) return true;
+        if (Tag.CROPS.isTagged(mat)) return true;
+        return false;
+    }
+
     void wallBlock(Block block, Set<BlockFace> faces) {
         // Figure out orientation and height
         int height = 0;
@@ -107,7 +128,7 @@ final class CaveDecorator {
         final boolean wall;
         if (faces.contains(BlockFace.UP)) {
             Block above = block.getRelative(0, 1, 0);
-            while (above.isEmpty() || above.getType().isTransparent()) {
+            while (isInside(above)) {
                 height += 1;
                 if (above.getY() == 255) break;
                 above = above.getRelative(0, 1, 0);
@@ -119,7 +140,7 @@ final class CaveDecorator {
         if (!floor && faces.contains(BlockFace.DOWN)) {
             Block below = block.getRelative(0, -1, 0);
             height = 0;
-            while (below.isEmpty() || below.getType().isTransparent()) {
+            while (isInside(below)) {
                 height += 1;
                 if (below.getY() == 0) break;
                 below = below.getRelative(0, -1, 0);
@@ -143,8 +164,16 @@ final class CaveDecorator {
         case DESERT: return wallBlockDesert(block, faces, height, floor, ceiling, wall);
         case MUSHROOM: return wallBlockMushroom(block, faces, height, floor, ceiling, wall);
         case OCEAN: return wallBlockOcean(block, faces, height, floor, ceiling, wall);
-        case MOUNTAIN: return wallBlockMountain(block, faces, height, floor, ceiling, wall);
+        case MOUNTAIN: return wallBlockMountain(block, faces, height, floor, ceiling, wall,
+                                                Material.OAK_LOG, Material.STRIPPED_OAK_LOG);
         case SWAMP: return wallBlockSwamp(block, faces, height, floor, ceiling, wall);
+        case SPRUCE: return wallBlockMountain(block, faces, height, floor, ceiling, wall,
+                                              Material.SPRUCE_LOG, Material.STRIPPED_SPRUCE_LOG);
+        case DARK_FOREST: return wallBlockSwamp(block, faces, height, floor, ceiling, wall);
+        case PLAINS: case FOREST:
+            return wallBlockFlowers(block, faces, height, floor, ceiling, wall);
+        case RIVER: return wallBlockRiver(block, faces, height, floor, ceiling, wall);
+        case MESA: return wallBlockMesa(block, faces, height, floor, ceiling, wall);
         default: return false;
         }
     }
@@ -201,7 +230,9 @@ final class CaveDecorator {
                 block.setType(Material.SAND, false);
                 Block cactus = block.getRelative(0, 1, 0);
                 int len = 1 + random.nextInt(Math.min(3, height));
-                CACTI: for (int i = 0; i < len; i += 1) {
+                CACTI:
+                for (int i = 0; i < len; i += 1) {
+                    if (!cactus.isEmpty()) break CACTI;
                     for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                         if (!cactus.getRelative(face).isEmpty()) {
                             break CACTI;
@@ -211,7 +242,10 @@ final class CaveDecorator {
                     cactus = cactus.getRelative(0, 1, 0);
                 }
             } else if (noise2 < -0.5) {
-                block.getRelative(0, 1, 0).setType(Material.DEAD_BUSH, false);
+                Block above = block.getRelative(0, 1, 0);
+                if (above.isEmpty()) {
+                    set(above, Material.DEAD_BUSH);
+                }
             }
         }
         return true;
@@ -243,10 +277,11 @@ final class CaveDecorator {
                 } else if (noise2 < 0) {
                     // Grass
                     block.setType(Material.GRASS_BLOCK, false);
-                    if (height >= 2 && noise2 < -0.5) {
+                    Block above = block.getRelative(0, 1, 0);
+                    if (above.isEmpty() && height >= 2 && noise2 < -0.5) {
                         // Tall
-                        set(block, 0, 1, 0, Blocks.lower(Material.TALL_GRASS));
-                        set(block, 0, 2, 0, Blocks.upper(Material.TALL_GRASS));
+                        set(above, Blocks.lower(Material.TALL_GRASS));
+                        set(above, 0, 1, 0, Blocks.upper(Material.TALL_GRASS));
                     } else {
                         block.getRelative(0, 1, 0).setType(Material.GRASS, false);
                     }
@@ -301,26 +336,29 @@ final class CaveDecorator {
         double noise = getNoise(block, 8.0);
         if (floor) {
             block.setType(Material.MYCELIUM, false);
-            double noise2 = getNoise(block, 1.0);
-            if (noise2 > 0.6) {
-                // Try to grow large
-                if (noise < 0.1) {
-                    if (!block.getWorld().generateTree(block.getLocation().add(0, 1, 0),
-                                                       TreeType.BROWN_MUSHROOM)) {
-                        block.getRelative(0, 1, 0).setType(Material.BROWN_MUSHROOM, false);
+            Block above = block.getRelative(0, 1, 0);
+            if (above.isEmpty()) {
+                double noise2 = getNoise(above, 1.0);
+                if (noise2 > 0.6) {
+                    // Try to grow large
+                    if (noise < 0.1) {
+                        if (!block.getWorld().generateTree(above.getLocation(),
+                                                           TreeType.BROWN_MUSHROOM)) {
+                            set(above, Material.BROWN_MUSHROOM);
+                        }
+                    } else {
+                        if (!block.getWorld().generateTree(above.getLocation(),
+                                                           TreeType.RED_MUSHROOM)) {
+                            set(above, Material.RED_MUSHROOM);
+                        }
                     }
-                } else {
-                    if (!block.getWorld().generateTree(block.getLocation().add(0, 1, 0),
-                                                       TreeType.RED_MUSHROOM)) {
-                        block.getRelative(0, 1, 0).setType(Material.RED_MUSHROOM, false);
+                } else if (noise2 > 0.3) {
+                    // Small mushrooms
+                    if (noise < 0) {
+                        set(above, Material.BROWN_MUSHROOM);
+                    } else {
+                        set(above, Material.RED_MUSHROOM);
                     }
-                }
-            } else if (noise2 > 0.3) {
-                // Small mushrooms
-                if (noise < 0) {
-                    block.getRelative(0, 1, 0).setType(Material.BROWN_MUSHROOM, false);
-                } else {
-                    block.getRelative(0, 1, 0).setType(Material.RED_MUSHROOM, false);
                 }
             }
         } else if (ceiling) {
@@ -409,7 +447,8 @@ final class CaveDecorator {
      * redstone torches, the rafters rarely by lanterns.
      */
     boolean wallBlockMountain(Block block, Set<BlockFace> faces, int height,
-                              boolean floor, boolean ceiling, boolean wall) {
+                              boolean floor, boolean ceiling, boolean wall,
+                              Material log, Material strippedLog) {
         if (ceiling) {
             double noiseL = noiseGenerator.noise(block.getX() / 96.0,
                                                  block.getZ() / 96.0);
@@ -420,11 +459,7 @@ final class CaveDecorator {
             boolean raft = height < 8
                 && Blocks.makeRaftersBelow(block, 6, dx, dz, b -> {
                         double noise = getNoise(b, 3);
-                        if (noise < 0.2) {
-                            return Material.OAK_LOG;
-                        } else {
-                            return Material.STRIPPED_OAK_LOG;
-                        }
+                        return noise < 0.2 ? log : strippedLog;
                     });
             if (height > 2 && raft) {
                 Block below = block.getRelative(0, -2, 0);
@@ -531,36 +566,40 @@ final class CaveDecorator {
                         set(block, Material.WATER);
                     }
                     Block above = block.getRelative(0, 1, 0);
-                    double noiseAbove = getNoise(above, 1.0);
-                    if (noiseAbove > 0.3) {
-                        set(above, Material.LILY_PAD);
+                    if (above.isEmpty()) {
+                        double noiseAbove = getNoise(above, 1.0);
+                        if (noiseAbove > 0.3) {
+                            set(above, Material.LILY_PAD);
+                        }
                     }
                 }
             } else {
                 // Land
                 set(block, Material.GRASS_BLOCK);
                 Block above = block.getRelative(0, 1, 0);
-                double noiseS = getNoise(above, 1.0);
-                // mushroom, orchid, grass, dead bush, sugar cane
-                if (noiseS < 0.5) {
-                    if (noiseS > 0.4) {
-                        set(above, Material.DEAD_BUSH);
-                    } else if (noiseS > 0.3) {
-                        set(above, Blocks.lower(Material.TALL_GRASS));
-                        set(above, 0, 1, 0, Blocks.upper(Material.TALL_GRASS));
-                    } else if (noiseS > 0.2) {
-                        set(above, Material.GRASS);
-                    } else if (noiseS > 0.1) {
-                        set(above, Material.BLUE_ORCHID);
-                    } else if (noiseS > 0.0) {
-                        set(above, Material.BROWN_MUSHROOM);
-                    } else if (noiseS > -0.1) {
-                        int len = 1 + random.nextInt(Math.min(3, height));
-                        for (int i = 0; i < len; i += 1) {
-                            set(above, 0, i, 0, Material.SUGAR_CANE);
+                if (above.isEmpty()) {
+                    double noiseS = getNoise(above, 1.0);
+                    // mushroom, orchid, grass, dead bush, sugar cane
+                    if (noiseS < 0.5) {
+                        if (noiseS > 0.4) {
+                            set(above, Material.DEAD_BUSH);
+                        } else if (noiseS > 0.3) {
+                            set(above, Blocks.lower(Material.TALL_GRASS));
+                            set(above, 0, 1, 0, Blocks.upper(Material.TALL_GRASS));
+                        } else if (noiseS > 0.2) {
+                            set(above, Material.GRASS);
+                        } else if (noiseS > 0.1) {
+                            set(above, Material.BLUE_ORCHID);
+                        } else if (noiseS > 0.0) {
+                            set(above, Material.BROWN_MUSHROOM);
+                        } else if (noiseS > -0.1) {
+                            int len = 1 + random.nextInt(Math.min(3, height));
+                            for (int i = 0; i < len; i += 1) {
+                                set(above, 0, i, 0, Material.SUGAR_CANE);
+                            }
+                        } else if (noiseS > -0.2) {
+                            set(above, Material.DEAD_BUSH);
                         }
-                    } else if (noiseS > -0.2) {
-                        set(above, Material.DEAD_BUSH);
                     }
                 }
             }
@@ -594,6 +633,203 @@ final class CaveDecorator {
                         nbor = nbor.getRelative(0, -1, 0);
                     }
                 }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Grassy floor with flowers. A natural look. Beehives.
+     */
+    boolean wallBlockFlowers(Block block, Set<BlockFace> faces, int height,
+                             boolean floor, boolean ceiling, boolean wall) {
+        if (floor) {
+            set(block, Material.GRASS_BLOCK);
+            Block above = block.getRelative(0, 1, 0);
+            if (above.isEmpty()) {
+                double noiseS = getNoise(above, 1.0);
+                if (noiseS > 0.2) {
+                    double noise = getNoise(above, 8.0);
+                    int flower = (int) (noise * 10.0);
+                    switch (flower) {
+                    case -8:
+                        set(above, Material.DANDELION); break;
+                    case -7:
+                        set(above, Material.POPPY); break;
+                    case -6:
+                        set(above, Material.BLUE_ORCHID); break;
+                    case -5:
+                        set(above, Material.ALLIUM); break;
+                    case -4:
+                        set(above, Material.AZURE_BLUET); break;
+                    case -3:
+                        set(above, Material.RED_TULIP); break;
+                    case -2:
+                        set(above, Material.ORANGE_TULIP); break;
+                    case -1:
+                        set(above, Material.WHITE_TULIP); break;
+                    case 0:
+                        set(above, Material.PINK_TULIP); break;
+                    case 1:
+                        set(above, Material.OXEYE_DAISY); break;
+                    case 2:
+                        set(above, Material.CORNFLOWER); break;
+                    case 3:
+                        set(above, Material.LILY_OF_THE_VALLEY); break;
+                    case 4:
+                        set(above, Material.WITHER_ROSE); break;
+                    case 5:
+                        if (height < 2) break;
+                        set(above, Blocks.lower(Material.SUNFLOWER));
+                        set(above, 0, 1, 0, Blocks.upper(Material.SUNFLOWER));
+                        break;
+                    case 6:
+                        if (height < 2) break;
+                        set(above, Blocks.lower(Material.LILAC));
+                        set(above, 0, 1, 0, Blocks.upper(Material.LILAC));
+                        break;
+                    case 7:
+                        if (height < 2) break;
+                        set(above, Blocks.lower(Material.ROSE_BUSH));
+                        set(above, 0, 1, 0, Blocks.upper(Material.ROSE_BUSH));
+                        break;
+                    case 8:
+                        if (height < 2) break;
+                        set(above, Blocks.lower(Material.PEONY));
+                        set(above, 0, 1, 0, Blocks.upper(Material.PEONY));
+                        break;
+                    default: break;
+                    }
+                } else if (noiseS < -0.5) {
+                    set(above, Blocks.lower(Material.TALL_GRASS));
+                    set(above, 0, 1, 0, Blocks.upper(Material.TALL_GRASS));
+                } else if (noiseS < -0.2) {
+                    set(above, Material.GRASS);
+                }
+            }
+        } else if (ceiling) {
+            double noise = getNoise(block, 8);
+            if (noise < 0) {
+                set(block, Material.DIRT);
+            } else if (noise > 0.5) {
+                set(block, Material.COARSE_DIRT);
+            } else {
+                set(block, Material.GRANITE);
+            }
+        } else if (wall) {
+            double noise = getNoise(block, 8);
+            if (noise < 0) {
+                set(block, Material.SAND);
+            } else if (noise > 0.5) {
+                set(block, Material.ANDESITE);
+            } else {
+                set(block, Material.STONE);
+            }
+            double noiseS = getNoise(block, 1.0);
+            if (noiseS > 0.8) {
+                List<BlockFace> hor = new ArrayList<>(4);
+                for (BlockFace face : HORIZONTAL_NEIGHBORS) {
+                    if (faces.contains(face)) hor.add(face);
+                }
+                if (!hor.isEmpty()) {
+                    BlockFace face = hor.get(random.nextInt(hor.size()));
+                    Block hive = block.getRelative(face);
+                    if (hive.isEmpty()) {
+                        set(hive, Blocks.direct(Material.BEE_NEST, face));
+                        Beehive beehive = (Beehive) hive.getState();
+                        int beeCount = 1 + random.nextInt(3);
+                        for (int i = 0; i < beeCount; i += 1) {
+                            Bee bee = (Bee) block.getWorld().spawnEntity(block.getLocation(),
+                                                                         EntityType.BEE);
+                            if (bee == null) break;
+                            beehive.addEntity(bee);
+                        }
+                        beehive.update();
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Sand, gravel, clay. The ceiling is made of clay and diorite.
+     */
+    boolean wallBlockRiver(Block block, Set<BlockFace> faces, int height,
+                           boolean floor, boolean ceiling, boolean wall) {
+        if (floor) {
+            double noise = getNoise(block, 8);
+            if (noise < -0.5) {
+                set(block, Material.CLAY);
+            } else if (noise > 0.5) {
+                set(block, Material.SAND);
+            } else {
+                set(block, Material.DIRT);
+            }
+        } else if (ceiling || wall) {
+            double noise = getNoise(block, 8);
+            if (noise < 0) {
+                set(block, Material.CLAY);
+            } else {
+                set(block, Material.DIORITE);
+            }
+        }
+        return true;
+    }
+
+    boolean wallBlockMesa(Block block, Set<BlockFace> faces, int height,
+                          boolean floor, boolean ceiling, boolean wall) {
+        if (floor) {
+            double noise = getNoise(block, 8);
+            if (noise > 0.5) {
+                set(block, Material.RED_SANDSTONE);
+            } else {
+                set(block, Material.RED_SAND);
+                Block above = block.getRelative(0, 1, 0);
+                if (above.isEmpty()) {
+                    double noiseS = getNoise(above, 1);
+                    if (noiseS > 0.3) {
+                        set(above, Material.DEAD_BUSH);
+                    } else if (noiseS < -0.4) {
+                        int len = 1 + random.nextInt(Math.min(3, height));
+                        CACTUS:
+                        for (int i = 0; i < len; i += 1) {
+                            if (!above.isEmpty()) break;
+                            for (BlockFace face : HORIZONTAL_NEIGHBORS) {
+                                if (!above.getRelative(face).isEmpty()) break CACTUS;
+                            }
+                            set(above, Material.CACTUS);
+                            above = above.getRelative(0, 1, 0);
+                        }
+                    }
+                }
+            }
+        } else if (ceiling) {
+            set(block, Material.RED_SANDSTONE);
+        } else {
+            switch (block.getY() % 7) {
+            case 0:
+                set(block, Material.RED_TERRACOTTA);
+                break;
+            case 1:
+                set(block, Material.ORANGE_TERRACOTTA);
+                break;
+            case 2:
+                set(block, Material.YELLOW_TERRACOTTA);
+                break;
+            case 3:
+                set(block, Material.WHITE_TERRACOTTA);
+                break;
+            case 4:
+                set(block, Material.LIGHT_GRAY_TERRACOTTA);
+                break;
+            case 5:
+                set(block, Material.BROWN_TERRACOTTA);
+                break;
+            case 6:
+                set(block, Material.TERRACOTTA);
+                break;
+            default: break;
             }
         }
         return true;
