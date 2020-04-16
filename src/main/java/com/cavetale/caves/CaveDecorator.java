@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.bukkit.Axis;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -141,6 +142,7 @@ final class CaveDecorator {
         case MUSHROOM: return wallBlockMushroom(block, faces, height, floor, ceiling, wall);
         case OCEAN: return wallBlockOcean(block, faces, height, floor, ceiling, wall);
         case MOUNTAIN: return wallBlockMountain(block, faces, height, floor, ceiling, wall);
+        case SWAMP: return wallBlockSwamp(block, faces, height, floor, ceiling, wall);
         default: return false;
         }
     }
@@ -196,7 +198,7 @@ final class CaveDecorator {
             if (noise2 > 0.33) {
                 block.setType(Material.SAND, false);
                 Block cactus = block.getRelative(0, 1, 0);
-                int len = 1 + random.nextInt(height);
+                int len = 1 + random.nextInt(Math.min(3, height));
                 CACTI: for (int i = 0; i < len; i += 1) {
                     for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                         if (!cactus.getRelative(face).isEmpty()) {
@@ -288,22 +290,53 @@ final class CaveDecorator {
         return true;
     }
 
+    /**
+     * Mycelium on the floor, mushroom stem and blocks make up the
+     * ceiling. Large and small mushrooms sprouting everywhere.
+     */
     boolean wallBlockMushroom(Block block, Set<BlockFace> faces, int height,
                               boolean floor, boolean ceiling, boolean wall) {
+        double noise = getNoise(block, 8.0);
         if (floor) {
             block.setType(Material.MYCELIUM, false);
             double noise2 = getNoise(block, 1.0);
-            if (noise2 < -0.5) {
-                block.getRelative(0, 1, 0).setType(Material.BROWN_MUSHROOM, false);
-            } else if (noise2 > 0.5) {
-                block.getRelative(0, 1, 0).setType(Material.RED_MUSHROOM, false);
+            if (noise2 > 0.6) {
+                // Try to grow large
+                if (noise < 0.1) {
+                    if (!block.getWorld().generateTree(block.getLocation().add(0, 1, 0),
+                                                       TreeType.BROWN_MUSHROOM)) {
+                        block.getRelative(0, 1, 0).setType(Material.BROWN_MUSHROOM, false);
+                    }
+                } else {
+                    if (!block.getWorld().generateTree(block.getLocation().add(0, 1, 0),
+                                                       TreeType.RED_MUSHROOM)) {
+                        block.getRelative(0, 1, 0).setType(Material.RED_MUSHROOM, false);
+                    }
+                }
+            } else if (noise2 > 0.3) {
+                // Small mushrooms
+                if (noise < 0) {
+                    block.getRelative(0, 1, 0).setType(Material.BROWN_MUSHROOM, false);
+                } else {
+                    block.getRelative(0, 1, 0).setType(Material.RED_MUSHROOM, false);
+                }
             }
-        } else {
-            double noise = getNoise(block, 8.0);
-            if (noise < 0) {
+        } else if (ceiling) {
+            double noise2 = getNoise(block, 1.0);
+            if (noise2 < -0.5) { // noise2!
+                block.setType(Material.GLOWSTONE, false);
+            } else if (noise < 0) { // NOT noise2
                 block.setType(Material.BROWN_MUSHROOM_BLOCK, false);
             } else {
                 block.setType(Material.RED_MUSHROOM_BLOCK, false);
+            }
+        } else if (wall) {
+            if (noise < -0.25) {
+                block.setType(Material.BROWN_MUSHROOM_BLOCK, false);
+            } else if (noise > 0.25) {
+                block.setType(Material.RED_MUSHROOM_BLOCK, false);
+            } else {
+                block.setType(Material.MUSHROOM_STEM, false);
             }
         }
         return true;
@@ -371,6 +404,11 @@ final class CaveDecorator {
     boolean wallBlockMountain(Block block, Set<BlockFace> faces, int height,
                               boolean floor, boolean ceiling, boolean wall) {
         
+        return true;
+    }
+
+    boolean wallBlockSwamp(Block block, Set<BlockFace> faces, int height,
+                           boolean floor, boolean ceiling, boolean wall) {
         return true;
     }
 

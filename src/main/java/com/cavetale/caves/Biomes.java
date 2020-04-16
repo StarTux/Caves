@@ -20,8 +20,8 @@ final class Biomes {
         DESERT("DESERT"), // done
         JUNGLE("JUNGLE"), // done
         OCEAN("OCEAN", "BEACH", "SHORE"), // done
-        MOUNTAIN("MOUNTAIN"), //
-        SWAMP("SWAMP"),
+        MOUNTAIN("MOUNTAIN"),
+        SWAMP("SWAMP"), //
         DARK_FOREST("DARK_FOREST"),
         SPRUCE("TAIGA", "SPRUCE"),
         PLAINS("PLAINS", "SUNFLOWER"),
@@ -54,9 +54,7 @@ final class Biomes {
                 }
             }
             if (!biomes.containsKey(biome)) {
-                plugin.getLogger().info("No matching biome: " + biome);
-            } else {
-                plugin.getLogger().info("Biome " + biome + " => " + biomes.get(biome));
+                plugin.getLogger().warning("No matching biome: " + biome);
             }
         }
     }

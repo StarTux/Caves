@@ -30,6 +30,9 @@ public final class CavesCommand implements CommandExecutor {
                 ? Biomes.Type.valueOf(args[0].toUpperCase())
                 : null;
             int r = 1;
+            if (args.length >= 2) {
+                r = Integer.parseInt(args[1]);
+            }
             plugin.getCaveDecorator(world).setBiome(biome);
             for (int z = chunk.getZ() - r; z <= chunk.getZ() + r; z += 1) {
                 for (int x = chunk.getX() - r; x <= chunk.getX() + r; x += 1) {
