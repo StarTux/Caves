@@ -9,6 +9,7 @@ import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 
 public final class Blocks {
@@ -53,6 +54,16 @@ public final class Blocks {
         BlockData data = mat.createBlockData();
         if (data instanceof Bisected) {
             ((Bisected) data).setHalf(Bisected.Half.BOTTOM);
+        }
+        return data;
+    }
+
+    public static BlockData waterlogged(Material mat) {
+        BlockData data = mat.createBlockData();
+        if (data instanceof Waterlogged) {
+            ((Waterlogged) data).setWaterlogged(true);
+        } else {
+            System.err.println("Not Waterlogged: " + mat);
         }
         return data;
     }

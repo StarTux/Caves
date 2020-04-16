@@ -85,6 +85,10 @@ final class CaveDecorator {
                                 wallBlocks.put(block, faceSet);
                             }
                             faceSet.add(face);
+                        } else if (nbor.getRelative(face).getType() == Material.CAVE_AIR) {
+                            if (!wallBlocks.containsKey(block)) {
+                                wallBlocks.put(block, EnumSet.noneOf(BlockFace.class));
+                            }
                         }
                     }
                 }
@@ -109,11 +113,10 @@ final class CaveDecorator {
                 above = above.getRelative(0, 1, 0);
             }
             floor = height >= 2;
-            height = height;
         } else {
             floor = false;
         }
-        if (faces.contains(BlockFace.DOWN)) {
+        if (!floor && faces.contains(BlockFace.DOWN)) {
             Block below = block.getRelative(0, -1, 0);
             height = 0;
             while (below.isEmpty() || below.getType().isTransparent()) {
@@ -125,9 +128,7 @@ final class CaveDecorator {
         } else {
             ceiling = false;
         }
-        wall = !floor && !ceiling
-            && (faces.contains(BlockFace.NORTH) || faces.contains(BlockFace.EAST)
-                || faces.contains(BlockFace.SOUTH) || faces.contains(BlockFace.WEST));
+        wall = !floor && !ceiling;
         wallBlock(block, faces, height, floor, ceiling, wall);
     }
 
@@ -383,9 +384,10 @@ final class CaveDecorator {
             }
             double noise2 = getNoise(block, 1.0);
             if (noise2 > 0.6) {
-                block.setType(Material.SEA_LANTERN, false);
-            } else if (noise2 < -0.6) {
                 block.setType(Material.WATER, true);
+                if (noise2 > 0.7) {
+                    set(block, 0, 1, 0, Material.SEA_LANTERN);
+                }
             }
         } else {
             double noise = getNoise(block, 8.0);
@@ -409,33 +411,115 @@ final class CaveDecorator {
 
     /**
      * Dirt and clay floor with puddles of water and lily pads.
-     * Trees? Slime blocks?
+     * Slime stalactites.
      */
     boolean wallBlockSwamp(Block block, Set<BlockFace> faces, int height,
                            boolean floor, boolean ceiling, boolean wall) {
         if (floor) {
             double noise = getNoise(block, 8.0);
-            if (noise > 0.3) {
-                set(block, Material.CLAY);
-            } else if (noise < -0.3) {
+            if (noise < 0) {
+                // Water puddle
                 boolean empty = false;
                 for (BlockFace face : HORIZONTAL_NEIGHBORS) {
-                    if (block.getRelative(face).isEmpty()) {
+                    if (faces.contains(face)) {
+                        empty = true;
+                        break;
+                    }
+                    Block nbor = block.getRelative(face);
+                    if (!nbor.getType().isSolid() && !nbor.isLiquid()) {
                         empty = true;
                         break;
                     }
                 }
                 if (empty) {
-                    set(block, Material.DIRT);
+                    // Border
+                    set(block, Material.GRASS_BLOCK);
+                    double noiseS = getNoise(block, 1.0);
+                    if (noiseS > 0) {
+                        int len = 1 + random.nextInt(Math.min(3, height));
+                        for (int i = 1; i <= len; i += 1) {
+                            set(block, 0, i, 0, Material.SUGAR_CANE);
+                        }
+                    }
                 } else {
-                    set(block, Material.WATER);
-                    double noise2 = getNoise(block, 1.0);
-                    if (noise > 0.3) {
-                        set(block, 0, 1, 0, Material.LILY_PAD);
+                    Block below = block.getRelative(0, -1, 0);
+                    double noiseBelow = getNoise(block, 6.0);
+                    if (noiseBelow > 0.2) {
+                        set(below, Material.CLAY);
+                    } else {
+                        set(below, Material.DIRT);
+                    }
+                    // Puddles with lilies and seagrass
+                    double noiseS = getNoise(block, 1.0);
+                    if (noiseS > 0.3) {
+                        set(block, Material.SEAGRASS);
+                    } else {
+                        set(block, Material.WATER);
+                    }
+                    Block above = block.getRelative(0, 1, 0);
+                    double noiseAbove = getNoise(above, 1.0);
+                    if (noiseAbove > 0.3) {
+                        set(above, Material.LILY_PAD);
                     }
                 }
             } else {
+                // Land
+                set(block, Material.GRASS_BLOCK);
+                Block above = block.getRelative(0, 1, 0);
+                double noiseS = getNoise(above, 1.0);
+                // mushroom, orchid, grass, dead bush, sugar cane
+                if (noiseS < 0.5) {
+                    if (noiseS > 0.4) {
+                        set(above, Material.DEAD_BUSH);
+                    } else if (noiseS > 0.3) {
+                        set(above, Blocks.lower(Material.TALL_GRASS));
+                        set(above, 0, 1, 0, Blocks.upper(Material.TALL_GRASS));
+                    } else if (noiseS > 0.2) {
+                        set(above, Material.GRASS);
+                    } else if (noiseS > 0.1) {
+                        set(above, Material.BLUE_ORCHID);
+                    } else if (noiseS > 0.0) {
+                        set(above, Material.BROWN_MUSHROOM);
+                    } else if (noiseS > -0.1) {
+                        int len = 1 + random.nextInt(Math.min(3, height));
+                        for (int i = 0; i < len; i += 1) {
+                            set(above, 0, i, 0, Material.SUGAR_CANE);
+                        }
+                    } else if (noiseS > -0.2) {
+                        set(above, Material.DEAD_BUSH);
+                    }
+                }
+            }
+        } else if (wall) {
+            double noise = getNoise(block, 8.0);
+            if (noise > 0) {
+                set(block, Material.SAND);
+            } else {
                 set(block, Material.DIRT);
+            }
+        } else if (ceiling) {
+            double noiseS = getNoise(block, 1.0);
+            if (noiseS > 0.4 && height > 1) {
+                int len = 1 + random.nextInt(Math.min(4, height));
+                for (int i = 0; i < len; i += 1) {
+                    set(block, Material.SLIME_BLOCK);
+                    block = block.getRelative(0, -1, 0);
+                }
+            } else {
+                set(block, Blocks.leaves(Material.OAK_LEAVES));
+                if (noiseS < -0.3) {
+                    set(block, 0, 1, 0, Material.OAK_WOOD);
+                }
+                // Hanging vines
+                for (BlockFace face : HORIZONTAL_NEIGHBORS) {
+                    if (!faces.contains(face)) continue;
+                    Block nbor = block.getRelative(face);
+                    int len = 1 + random.nextInt(height);
+                    for (int i = 0; i < len && nbor.isEmpty(); i += 1) {
+                        set(nbor, Blocks.facing(Material.VINE, face.getOppositeFace()));
+                        nbor = nbor.getRelative(0, -1, 0);
+                    }
+                }
             }
         }
         return true;
