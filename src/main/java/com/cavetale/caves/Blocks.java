@@ -3,6 +3,7 @@ package com.cavetale.caves;
 import java.util.Random;
 import org.bukkit.Axis;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
@@ -11,6 +12,8 @@ import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
 
 public final class Blocks {
+    private Blocks() { }
+
     /**
      * Orient if possible.
      */
@@ -56,5 +59,21 @@ public final class Blocks {
 
     public static <T> T randomArray(T[] ls, Random random) {
         return ls[random.nextInt(ls.length)];
+    }
+
+    public static void set(Block block, Material material) {
+        block.setType(material, false);
+    }
+
+    public static void set(Block block, BlockData data) {
+        block.setBlockData(data, false);
+    }
+
+    public static void set(Block block, int x, int y, int z, Material material) {
+        block.getRelative(x, y, z).setType(material, false);
+    }
+
+    public static void set(Block block, int x, int y, int z, BlockData data) {
+        block.getRelative(x, y, z).setBlockData(data, false);
     }
 }

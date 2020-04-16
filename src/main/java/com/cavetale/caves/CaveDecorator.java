@@ -16,6 +16,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.noise.SimplexNoiseGenerator;
+import static com.cavetale.caves.Blocks.set;
 
 /**
  * Goal: Have 1 cave decoration for each Biome.Type (some may share).
@@ -41,7 +42,7 @@ final class CaveDecorator {
     };
     @Setter private Biomes.Type biome = null; // debug
 
-    CaveDecorator(CavesPlugin plugin, World world) {
+    CaveDecorator(final CavesPlugin plugin, final World world) {
         this.plugin = plugin;
         noiseGenerator = new SimplexNoiseGenerator(world.getSeed());
     }
@@ -243,8 +244,8 @@ final class CaveDecorator {
                     block.setType(Material.GRASS_BLOCK, false);
                     if (height >= 2 && noise2 < -0.5) {
                         // Tall
-                        block.getRelative(0, 1, 0).setBlockData(Blocks.lower(Material.TALL_GRASS), false);
-                        block.getRelative(0, 2, 0).setBlockData(Blocks.upper(Material.TALL_GRASS), false);
+                        set(block, 0, 1, 0, Blocks.lower(Material.TALL_GRASS));
+                        set(block, 0, 2, 0, Blocks.upper(Material.TALL_GRASS));
                     } else {
                         block.getRelative(0, 1, 0).setType(Material.GRASS, false);
                     }
@@ -403,12 +404,40 @@ final class CaveDecorator {
 
     boolean wallBlockMountain(Block block, Set<BlockFace> faces, int height,
                               boolean floor, boolean ceiling, boolean wall) {
-        
         return true;
     }
 
+    /**
+     * Dirt and clay floor with puddles of water and lily pads.
+     * Trees? Slime blocks?
+     */
     boolean wallBlockSwamp(Block block, Set<BlockFace> faces, int height,
                            boolean floor, boolean ceiling, boolean wall) {
+        if (floor) {
+            double noise = getNoise(block, 8.0);
+            if (noise > 0.3) {
+                set(block, Material.CLAY);
+            } else if (noise < -0.3) {
+                boolean empty = false;
+                for (BlockFace face : HORIZONTAL_NEIGHBORS) {
+                    if (block.getRelative(face).isEmpty()) {
+                        empty = true;
+                        break;
+                    }
+                }
+                if (empty) {
+                    set(block, Material.DIRT);
+                } else {
+                    set(block, Material.WATER);
+                    double noise2 = getNoise(block, 1.0);
+                    if (noise > 0.3) {
+                        set(block, 0, 1, 0, Material.LILY_PAD);
+                    }
+                }
+            } else {
+                set(block, Material.DIRT);
+            }
+        }
         return true;
     }
 
