@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.bukkit.Axis;
 import org.bukkit.Chunk;
@@ -53,7 +54,9 @@ final class CaveDecorator {
         noiseGenerator = new SimplexNoiseGenerator(world.getSeed());
     }
 
+    @RequiredArgsConstructor
     static final class Context {
+        final List<Runnable> deferredActions;
         Set<BlockFace> faces = EnumSet.noneOf(BlockFace.class);
         int height;
         boolean floor;
@@ -67,6 +70,7 @@ final class CaveDecorator {
         final int cz = chunk.getZ();
         // Block => revealed faces
         Map<Block, Context> blocks = new HashMap<>();
+        List<Runnable> deferredActions = new ArrayList<>();
         for (int z = 0; z < 16; z += 1) {
             for (int x = 0; x < 16; x += 1) {
                 final int hi = world.getHighestBlockYAt(cx * 16 + x,
@@ -76,15 +80,7 @@ final class CaveDecorator {
                     Block block = chunk.getBlock(x, y, z);
                     Context context = null;
                     if (block.isEmpty()) continue;
-                    switch (block.getType()) {
-                    case STONE:
-                    case ANDESITE: case DIORITE: case GRANITE:
-                    case DIRT: case GRAVEL:
-                    case COAL_ORE:
-                        break; // OK
-                    default:
-                        continue BLOCK;
-                    }
+                    if (!canReplace(block)) continue;
                     for (BlockFace face : FACING_NEIGHBORS) {
                         Block nbor = block.getRelative(face);
                         if (nbor.getType() == Material.AIR) {
@@ -94,16 +90,15 @@ final class CaveDecorator {
                         }
                         if (nbor.getType() == Material.CAVE_AIR) {
                             if (context == null) {
-                                context = new Context();
+                                context = new Context(deferredActions);
                                 blocks.put(block, context);
                             }
                             context.faces.add(face);
-                        }
-                        if (isInside(nbor)) {
+                        } else if (isInside(nbor)) {
                             for (BlockFace face2 : FACING_NEIGHBORS) {
                                 if (nbor.getRelative(face2).getType() == Material.CAVE_AIR) {
                                     if (context == null) {
-                                        context = new Context();
+                                        context = new Context(deferredActions);
                                         blocks.put(block, context);
                                     }
                                     context.faces.add(face);
@@ -118,8 +113,22 @@ final class CaveDecorator {
             }
         }
         for (Map.Entry<Block, Context> entry : blocks.entrySet()) {
+            Block block = entry.getKey();
             Context context = entry.getValue();
-            transform(entry.getKey(), context);
+            transform(block, context);
+        }
+        for (Runnable run : deferredActions) run.run();
+    }
+
+    boolean canReplace(Block block) {
+        switch (block.getType()) {
+        case STONE:
+        case ANDESITE: case DIORITE: case GRANITE:
+        case DIRT: case GRAVEL:
+        case COAL_ORE:
+            return true;
+        default:
+            return false;
         }
     }
 
@@ -347,15 +356,19 @@ final class CaveDecorator {
                 if (noise2 > 0.6) {
                     // Try to grow large
                     if (noise < 0.1) {
-                        if (!block.getWorld().generateTree(above.getLocation(),
-                                                           TreeType.BROWN_MUSHROOM)) {
-                            set(above, Material.BROWN_MUSHROOM);
-                        }
+                        context.deferredActions.add(() -> {
+                                if (!block.getWorld().generateTree(above.getLocation(),
+                                                                   TreeType.BROWN_MUSHROOM)) {
+                                    set(above, Material.BROWN_MUSHROOM);
+                                }
+                            });
                     } else {
-                        if (!block.getWorld().generateTree(above.getLocation(),
-                                                           TreeType.RED_MUSHROOM)) {
-                            set(above, Material.RED_MUSHROOM);
-                        }
+                        context.deferredActions.add(() -> {
+                                if (!block.getWorld().generateTree(above.getLocation(),
+                                                                   TreeType.RED_MUSHROOM)) {
+                                    set(above, Material.RED_MUSHROOM);
+                                }
+                            });
                     }
                 } else if (noise2 > 0.3) {
                     // Small mushrooms
