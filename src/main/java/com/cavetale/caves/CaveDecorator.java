@@ -820,27 +820,13 @@ final class CaveDecorator {
             set(block, Material.RED_SANDSTONE);
         } else if (context.wall) {
             switch (block.getY() % 7) {
-            case 0:
-                set(block, Material.RED_TERRACOTTA);
-                break;
-            case 1:
-                set(block, Material.ORANGE_TERRACOTTA);
-                break;
-            case 2:
-                set(block, Material.YELLOW_TERRACOTTA);
-                break;
-            case 3:
-                set(block, Material.WHITE_TERRACOTTA);
-                break;
-            case 4:
-                set(block, Material.LIGHT_GRAY_TERRACOTTA);
-                break;
-            case 5:
-                set(block, Material.BROWN_TERRACOTTA);
-                break;
-            case 6:
-                set(block, Material.TERRACOTTA);
-                break;
+            case 0: set(block, Material.RED_TERRACOTTA); break;
+            case 1: set(block, Material.ORANGE_TERRACOTTA); break;
+            case 2: set(block, Material.YELLOW_TERRACOTTA); break;
+            case 3: set(block, Material.WHITE_TERRACOTTA); break;
+            case 4: set(block, Material.LIGHT_GRAY_TERRACOTTA); break;
+            case 5: set(block, Material.BROWN_TERRACOTTA); break;
+            case 6: set(block, Material.TERRACOTTA); break;
             default: break;
             }
         }
