@@ -15,7 +15,8 @@ final class Biomes {
 
     enum Type {
         COLD("SNOW", "ICE", "FROZEN"),
-        MESA("SAVANNA", "BADLAND"),
+        MESA("BADLAND"),
+        SAVANNA("SAVANNA"),
         MUSHROOM("MUSHROOM"),
         DESERT("DESERT"),
         JUNGLE("JUNGLE"),

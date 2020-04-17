@@ -188,7 +188,7 @@ final class CaveDecorator {
             return transformMountain(block, context,
                                      Material.SPRUCE_LOG, Material.STRIPPED_SPRUCE_LOG);
         case DARK_FOREST: return transformSwamp(block, context);
-        case PLAINS: case FOREST:
+        case PLAINS: case FOREST: case SAVANNA:
             return transformFlowers(block, context);
         case RIVER: return transformRiver(block, context);
         case MESA: return transformMesa(block, context);
