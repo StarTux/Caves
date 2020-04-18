@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.bukkit.Axis;
@@ -59,9 +60,11 @@ final class CaveDecorator {
         final List<Runnable> deferredActions;
         Set<BlockFace> faces = EnumSet.noneOf(BlockFace.class);
         int height;
+        int skyLight;
         boolean floor;
         boolean ceiling;
         boolean wall;
+        boolean horizontal;
     }
 
     void transformChunk(Chunk chunk) {
@@ -94,6 +97,10 @@ final class CaveDecorator {
                                 blocks.put(block, context);
                             }
                             context.faces.add(face);
+                            int skyLight = nbor.getLightFromSky();
+                            if (skyLight > context.skyLight) {
+                                context.skyLight = skyLight;
+                            }
                         } else if (isInside(nbor)) {
                             for (BlockFace face2 : FACING_NEIGHBORS) {
                                 if (nbor.getRelative(face2).getType() == Material.CAVE_AIR) {
@@ -112,6 +119,7 @@ final class CaveDecorator {
                 }
             }
         }
+        placeOres(blocks);
         for (Map.Entry<Block, Context> entry : blocks.entrySet()) {
             Block block = entry.getKey();
             Context context = entry.getValue();
@@ -125,7 +133,7 @@ final class CaveDecorator {
         case STONE:
         case ANDESITE: case DIORITE: case GRANITE:
         case DIRT: case GRAVEL:
-        case COAL_ORE:
+        case COAL_ORE: case IRON_ORE:
             return true;
         default:
             return false;
@@ -168,6 +176,98 @@ final class CaveDecorator {
             context.ceiling = false;
         }
         context.wall = !context.floor && !context.ceiling;
+        context.horizontal = context.faces.contains(BlockFace.NORTH)
+            || context.faces.contains(BlockFace.EAST)
+            || context.faces.contains(BlockFace.SOUTH)
+            || context.faces.contains(BlockFace.WEST);
+    }
+
+    /**
+     * Place ores. The blocks map will be modified so that ore blocks
+     * are removed.
+     */
+    void placeOres(Map<Block, Context> blocks) {
+        List<Block> oreBlocks = blocks.keySet().stream()
+            .filter(b -> {
+                    Context context = blocks.get(b);
+                    return context.skyLight == 0 && context.horizontal;
+                })
+            .collect(Collectors.toList());
+        // For comparison:
+        // Vanilla iron ore tries to spawn 20 times per chunk
+        // Vanilla coal ore tries to spawn 20 times per chunk
+        // Many chunks have 500-1000 wall blocks; 800 / 20=40
+        int total = oreBlocks.size() / 20;
+        if (total < 1) total = 1;
+        if (total > 50) total = 50;
+        ORE_BLOCKS:
+        for (int i = 0; i < total; i += 1) {
+            if (oreBlocks.isEmpty()) break;
+            Block origin = oreBlocks.get(random.nextInt(oreBlocks.size()));
+            int veinSize;
+            Material ore;
+            Biomes.Type theBiome = biome != null
+                ? biome
+                : plugin.biomes.of(origin);
+            switch (theBiome) {
+            case COLD:
+            case SPRUCE:
+                ore = Material.IRON_ORE;
+                veinSize = 18 + getIntNoise(origin, 1.0, 8);
+                break;
+            case MESA:
+            case SAVANNA:
+            case DESERT:
+                ore = Material.GOLD_ORE;
+                veinSize = 18 + getIntNoise(origin, 1.0, 8);
+                break;
+            case JUNGLE:
+            case DARK_FOREST:
+                ore = Material.EMERALD_ORE;
+                veinSize = 12 + getIntNoise(origin, 1.0, 6);
+                break;
+            case MOUNTAIN:
+                ore = Material.DIAMOND_ORE;
+                veinSize = 12 + getIntNoise(origin, 1.0, 6);
+                break;
+            case PLAINS:
+            case FOREST:
+                ore = Material.COAL_ORE;
+                veinSize = 18 + getIntNoise(origin, 1.0, 8);
+                break;
+            default:
+                continue ORE_BLOCKS;
+            }
+            List<Block> vein = growVein(origin, veinSize);
+            for (Block block : vein) {
+                set(block, ore);
+                blocks.remove(vein);
+            }
+            oreBlocks.removeAll(vein);
+        }
+    }
+
+    List<Block> growVein(Block origin, int size) {
+        List<Block> vein = new ArrayList<>(size);
+        vein.add(origin);
+        List<Block> adjacent = new ArrayList<>();
+        Block pivot = origin;
+        for (int i = 1; i < size; i += 1) {
+            for (BlockFace face : FACING_NEIGHBORS) {
+                Block nbor = pivot.getRelative(face);
+                if (vein.contains(nbor)) continue;
+                if (adjacent.contains(nbor)) continue;
+                if (!canReplace(nbor)) continue;
+                if (Math.abs(nbor.getX() - origin.getX()) > 4) continue;
+                if (Math.abs(nbor.getZ() - origin.getZ()) > 4) continue;
+                if (Math.abs(nbor.getY() - origin.getY()) > 5) continue;
+                adjacent.add(nbor);
+            }
+            if (adjacent.isEmpty()) break;
+            pivot = adjacent.remove(random.nextInt(adjacent.size()));
+            vein.add(pivot);
+        }
+        return vein;
     }
 
     boolean transform(Block block, Context context) {
@@ -488,16 +588,24 @@ final class CaveDecorator {
             }
         } else if (context.floor) {
             double noise = getNoise(block, 8.0);
-            if (noise < -0.5) {
-                set(block, Material.GRAVEL);
-            } else if (noise < 0) {
-                set(block, Material.STONE);
-            } else if (noise > 0.6) {
-                set(block, Material.MOSSY_COBBLESTONE);
-            } else if (noise > 0.2) {
-                set(block, Material.COBBLESTONE);
+            if (context.horizontal) {
+                if (noise > 0) {
+                    set(block, Material.SMOOTH_STONE);
+                } else {
+                    set(block, Material.COBBLESTONE);
+                }
             } else {
-                set(block, Material.SMOOTH_STONE);
+                if (noise < -0.5) {
+                    set(block, Material.GRAVEL);
+                } else if (noise < 0) {
+                    set(block, Material.STONE);
+                } else if (noise > 0.6) {
+                    set(block, Material.MOSSY_COBBLESTONE);
+                } else if (noise > 0.2) {
+                    set(block, Material.COBBLESTONE);
+                } else {
+                    set(block, Material.SMOOTH_STONE);
+                }
             }
         } else if (context.wall) {
             double noiseS = getNoise(block, 1.0);
@@ -831,6 +939,12 @@ final class CaveDecorator {
             }
         }
         return true;
+    }
+
+    int getIntNoise(Block block, double scale, int factor) {
+        double noise = getNoise(block, scale);
+        int val = (int) (noise * factor);
+        return val;
     }
 
     double getNoise(Block block, double scale) {
