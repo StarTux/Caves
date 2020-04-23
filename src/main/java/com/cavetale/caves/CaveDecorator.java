@@ -954,6 +954,6 @@ final class CaveDecorator {
     }
 
     void onChunkDecorate(Chunk chunk) {
-        // transformChunk(chunk);
+        transformChunk(chunk);
     }
 }
