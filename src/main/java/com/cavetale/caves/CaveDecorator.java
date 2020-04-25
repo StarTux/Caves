@@ -199,7 +199,7 @@ final class CaveDecorator {
         // Many chunks have 500-1000 wall blocks; 800 / 20=40
         int total = oreBlocks.size() / 20;
         if (total < 1) total = 1;
-        if (total > 50) total = 50;
+        if (total > 40) total = 40;
         ORE_BLOCKS:
         for (int i = 0; i < total; i += 1) {
             if (oreBlocks.isEmpty()) break;
@@ -213,27 +213,27 @@ final class CaveDecorator {
             case COLD:
             case SPRUCE:
                 ore = Material.IRON_ORE;
-                veinSize = 18 + getIntNoise(origin, 1.0, 8);
+                veinSize = 12 + getIntNoise(origin, 1.0, 6);
                 break;
             case MESA:
             case SAVANNA:
             case DESERT:
                 ore = Material.GOLD_ORE;
-                veinSize = 18 + getIntNoise(origin, 1.0, 8);
+                veinSize = 12 + getIntNoise(origin, 1.0, 6);
                 break;
             case JUNGLE:
             case DARK_FOREST:
                 ore = Material.EMERALD_ORE;
-                veinSize = 12 + getIntNoise(origin, 1.0, 6);
+                veinSize = 7 + getIntNoise(origin, 1.0, 4);
                 break;
             case MOUNTAIN:
                 ore = Material.DIAMOND_ORE;
-                veinSize = 12 + getIntNoise(origin, 1.0, 6);
+                veinSize = 7 + getIntNoise(origin, 1.0, 4);
                 break;
             case PLAINS:
             case FOREST:
                 ore = Material.COAL_ORE;
-                veinSize = 18 + getIntNoise(origin, 1.0, 8);
+                veinSize = 16 + getIntNoise(origin, 1.0, 8);
                 break;
             default:
                 continue ORE_BLOCKS;
