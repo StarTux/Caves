@@ -197,9 +197,9 @@ final class CaveDecorator {
         // Vanilla iron ore tries to spawn 20 times per chunk
         // Vanilla coal ore tries to spawn 20 times per chunk
         // Many chunks have 500-1000 wall blocks; 800 / 20=40
-        int total = oreBlocks.size() / 20;
+        int total = oreBlocks.size() / 40;
         if (total < 1) total = 1;
-        if (total > 40) total = 40;
+        if (total > 20) total = 20;
         ORE_BLOCKS:
         for (int i = 0; i < total; i += 1) {
             if (oreBlocks.isEmpty()) break;
