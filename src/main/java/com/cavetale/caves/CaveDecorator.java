@@ -188,6 +188,7 @@ final class CaveDecorator {
      */
     void placeOres(Map<Block, Context> blocks) {
         List<Block> oreBlocks = blocks.keySet().stream()
+            .filter(b -> b.getY() >= 16)
             .filter(b -> {
                     Context context = blocks.get(b);
                     return context.skyLight == 0 && context.horizontal;
@@ -196,10 +197,8 @@ final class CaveDecorator {
         // For comparison:
         // Vanilla iron ore tries to spawn 20 times per chunk
         // Vanilla coal ore tries to spawn 20 times per chunk
-        // Many chunks have 500-1000 wall blocks; 800 / 20=40
-        int total = oreBlocks.size() / 40;
-        if (total < 1) total = 1;
-        if (total > 20) total = 20;
+        // Many chunks have 500-1000 wall blocks; 800 / 80=20
+        int total = 15;
         ORE_BLOCKS:
         for (int i = 0; i < total; i += 1) {
             if (oreBlocks.isEmpty()) break;
@@ -213,22 +212,22 @@ final class CaveDecorator {
             case COLD:
             case SPRUCE:
                 ore = Material.IRON_ORE;
-                veinSize = 12 + getIntNoise(origin, 1.0, 6);
+                veinSize = 10 + getIntNoise(origin, 1.0, 4);
                 break;
             case MESA:
             case SAVANNA:
             case DESERT:
                 ore = Material.GOLD_ORE;
-                veinSize = 12 + getIntNoise(origin, 1.0, 6);
+                veinSize = 10 + getIntNoise(origin, 1.0, 4);
                 break;
             case JUNGLE:
             case DARK_FOREST:
                 ore = Material.EMERALD_ORE;
-                veinSize = 7 + getIntNoise(origin, 1.0, 4);
+                veinSize = 7 + getIntNoise(origin, 1.0, 3);
                 break;
             case MOUNTAIN:
                 ore = Material.DIAMOND_ORE;
-                veinSize = 7 + getIntNoise(origin, 1.0, 4);
+                veinSize = 6 + getIntNoise(origin, 1.0, 2);
                 break;
             case PLAINS:
             case FOREST:
@@ -848,7 +847,7 @@ final class CaveDecorator {
                 set(block, Material.STONE);
             }
             double noiseS = getNoise(block, 1.0);
-            if (noiseS > 0.8) {
+            if (noiseS > 0.9) {
                 List<BlockFace> hor = new ArrayList<>(4);
                 for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                     if (context.faces.contains(face)) hor.add(face);
@@ -859,14 +858,12 @@ final class CaveDecorator {
                     if (hive.isEmpty()) {
                         set(hive, Blocks.direct(Material.BEE_NEST, face));
                         Beehive beehive = (Beehive) hive.getState();
-                        int beeCount = 1 + random.nextInt(3);
-                        for (int i = 0; i < beeCount; i += 1) {
-                            Bee bee = (Bee) block.getWorld().spawnEntity(block.getLocation(),
-                                                                         EntityType.BEE);
-                            if (bee == null) break;
+                        Bee bee = (Bee) block.getWorld().spawnEntity(block.getLocation(),
+                                                                     EntityType.BEE);
+                        if (bee != null) {
                             beehive.addEntity(bee);
+                            beehive.update();
                         }
-                        beehive.update();
                     }
                 }
             }
