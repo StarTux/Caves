@@ -200,7 +200,7 @@ final class CaveDecorator {
         // Vanilla iron ore tries to spawn 20 times per chunk
         // Vanilla coal ore tries to spawn 20 times per chunk
         // Many chunks have 500-1000 wall blocks; 800 / 80=20
-        int total = 10;
+        int total = 8;
         ORE_BLOCKS:
         for (int i = 0; i < total; i += 1) {
             if (oreBlocks.isEmpty()) break;
@@ -229,12 +229,12 @@ final class CaveDecorator {
                 break;
             case MOUNTAIN:
                 ore = Material.DIAMOND_ORE;
-                veinSize = 6 + getIntNoise(origin, 1.0, 2);
+                veinSize = 4 + getIntNoise(origin, 1.0, 2);
                 break;
             case PLAINS:
             case FOREST:
                 ore = Material.COAL_ORE;
-                veinSize = 16 + getIntNoise(origin, 1.0, 8);
+                veinSize = 12 + getIntNoise(origin, 1.0, 6);
                 break;
             default:
                 continue ORE_BLOCKS;
