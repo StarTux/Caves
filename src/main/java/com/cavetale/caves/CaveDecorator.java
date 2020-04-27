@@ -471,7 +471,7 @@ final class CaveDecorator {
                                 }
                             });
                     }
-                } else if (noise2 > 0.9) {
+                } else if (noise2 < -0.8) {
                     spawnBrownMushroomCow(above.getLocation().add(0.5, 0, 0.5));
                 } else if (noise2 > 0.3) {
                     // Small mushrooms
