@@ -859,7 +859,7 @@ final class CaveDecorator {
                 set(block, Material.STONE);
             }
             double noiseS = getNoise(block, 1.0);
-            if (noiseS > 0.9) {
+            if (noiseS > 0.95) {
                 List<BlockFace> hor = new ArrayList<>(4);
                 for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                     if (context.faces.contains(face)) hor.add(face);
