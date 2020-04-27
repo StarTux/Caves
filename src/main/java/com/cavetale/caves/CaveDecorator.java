@@ -670,7 +670,7 @@ final class CaveDecorator {
                     // Border
                     set(block, Material.GRASS_BLOCK);
                     double noiseS = getNoise(block, 1.0);
-                    if (noiseS > 0.5) {
+                    if (noiseS > 0.8) {
                         spawnBrownMushroomCow(block.getLocation().add(0.5, 1.0, 0.5));
                     //     int len = 1 + random.nextInt(Math.min(3, context.height));
                     //     for (int i = 1; i <= len; i += 1) {
