@@ -565,16 +565,14 @@ final class CaveDecorator {
     boolean transformMountain(Block block, Context context,
                               Material log, Material strippedLog) {
         if (context.ceiling) {
-            double noiseL = noiseGenerator.noise(block.getX() / 96.0,
-                                                 block.getZ() / 96.0);
-            int dx = (int) (noiseL * 5.0);
-            int dz = (int) (noiseL * 5.0);
-            if (dx < 0) dx += 6;
-            if (dz < 0) dz += 6;
+            final double scale = 128.0;
+            double noiseX = getNoise(block, scale);
+            int dx = (int) Math.floor(noiseX * 3.0 + 3.0);
+            int dz = (int) Math.floor(noiseX * 3.0 + 3.0);
             boolean raft = context.height < 8
                 && Blocks.makeRaftersBelow(block, 6, dx, dz, b -> {
-                        double noise = getNoise(b, 3);
-                        return noise < 0.2 ? log : strippedLog;
+                        double noise = getNoise(b, 8);
+                        return noise < 0.4 ? log : strippedLog;
                     });
             if (context.height > 2 && raft) {
                 Block below = block.getRelative(0, -2, 0);
@@ -585,25 +583,39 @@ final class CaveDecorator {
                     }
                 }
             }
-        } else if (context.floor) {
             double noise = getNoise(block, 8.0);
+            if (noise > 0.5) {
+                set(block, Material.GRAVEL);
+            } else if (noise > 0) {
+                set(block, Material.STONE);
+            } else if (noise > -0.5) {
+                set(block, Material.ANDESITE);
+            } else {
+                set(block, Material.SPRUCE_PLANKS);
+            }
+        } else if (context.floor) {
             if (context.horizontal) {
-                if (noise > 0) {
-                    set(block, Material.SMOOTH_STONE);
+                    List<BlockFace> faces = context.faces.stream()
+                        .filter(f -> f.getModY() == 0)
+                        .collect(Collectors.toList());
+                if (faces.size() == 1) {
+                    BlockFace face = faces.get(0).getOppositeFace();
+                    set(block, Blocks.direct(Material.COBBLESTONE_STAIRS, face));
                 } else {
-                    set(block, Material.COBBLESTONE);
+                    set(block, Material.COBBLESTONE_SLAB);
                 }
             } else {
-                if (noise < -0.5) {
-                    set(block, Material.GRAVEL);
+                double noise = getNoise(block, 8.0);
+                if (noise < -0.8) {
+                    set(block, Material.CRACKED_STONE_BRICKS);
+                } else if (noise < -0.6) {
+                    set(block, Material.STONE_BRICKS);
                 } else if (noise < 0) {
                     set(block, Material.STONE);
                 } else if (noise > 0.6) {
                     set(block, Material.MOSSY_COBBLESTONE);
-                } else if (noise > 0.2) {
-                    set(block, Material.COBBLESTONE);
                 } else {
-                    set(block, Material.SMOOTH_STONE);
+                    set(block, Material.COBBLESTONE);
                 }
             }
         } else if (context.wall) {
@@ -616,11 +628,13 @@ final class CaveDecorator {
                 double noise = getNoise(block, 8.0);
                 if (noise < 0) {
                     set(block, Material.STONE);
+                } else if (noise > 0.6) {
+                    set(block, Material.POLISHED_ANDESITE);
                 } else {
                     set(block, Material.ANDESITE);
                 }
             }
-            if (Math.abs(noiseS) > 0.75) {
+            if (Math.abs(noiseS) > 0.8) {
                 List<BlockFace> hor = new ArrayList<>(4);
                 for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                     if (context.faces.contains(face)) hor.add(face);
@@ -629,7 +643,7 @@ final class CaveDecorator {
                     BlockFace face = hor.get(context.random.nextInt(hor.size()));
                     Block torch = block.getRelative(face);
                     if (torch.isEmpty()) {
-                        if (noiseS > 0.8) {
+                        if (noiseS > 0.9) {
                             set(torch, Blocks.direct(Material.WALL_TORCH, face));
                         } else {
                             set(torch, Blocks.direct(Material.REDSTONE_WALL_TORCH, face));

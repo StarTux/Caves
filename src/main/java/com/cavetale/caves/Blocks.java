@@ -105,8 +105,12 @@ public final class Blocks {
 
     public static boolean makeRaftersBelow(Block block, int interval, int x, int z,
                                            Function<Block, Material> fun) {
-        boolean rafterX = block.getX() % interval == x;
-        boolean rafterZ = block.getZ() % interval == z;
+        int ix = block.getX() % interval;
+        if (ix < 0) ix += interval;
+        int iz = block.getZ() % interval;
+        if (iz < 0) iz += interval;
+        boolean rafterX = ix == x;
+        boolean rafterZ = iz == z;
         Block pillar = block.getRelative(0, -1, 0);
         if (rafterX && rafterZ) {
             while (pillar.isEmpty() || pillar.isLiquid()) {
