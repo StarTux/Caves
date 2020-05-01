@@ -6,7 +6,6 @@ import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CavesPlugin extends JavaPlugin {
-    final EventListener listener = new EventListener(this);
     final Biomes biomes = new Biomes(this);
     final Map<String, CaveDecorator> caves = new HashMap<>();
     final CavesCommand command = new CavesCommand(this);
@@ -14,7 +13,12 @@ public final class CavesPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         biomes.load();
-        getServer().getPluginManager().registerEvents(listener, this);
+        if (getServer().getPluginManager().isPluginEnabled("Decorator")) {
+            final EventListener listener = new EventListener(this);
+            getServer().getPluginManager().registerEvents(listener, this);
+        } else {
+            getLogger().warning("Decorator NOT found!");
+        }
         getCommand("caves").setExecutor(command);
     }
 

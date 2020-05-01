@@ -5,8 +5,8 @@ api-version: 1.13
 description: Generate more interesting themed caves
 author: StarTux
 website: https://cavetale.com
-depend: [Decorator]
-softdepend: []
+depend: []
+softdepend: [Decorator]
 commands:
   caves:
     aliases: [cave]
