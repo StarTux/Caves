@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -35,7 +34,6 @@ import static com.cavetale.caves.Blocks.set;
 final class CaveDecorator {
     private final CavesPlugin plugin;
     private final SimplexNoiseGenerator noiseGenerator;
-    private final Random random = ThreadLocalRandom.current();
     private static final BlockFace[] FACING_NEIGHBORS = {
         BlockFace.UP,
         BlockFace.DOWN,
@@ -60,6 +58,7 @@ final class CaveDecorator {
     @RequiredArgsConstructor
     static final class Context {
         final List<Runnable> deferredActions;
+        final Random random;
         Set<BlockFace> faces = EnumSet.noneOf(BlockFace.class);
         int height;
         int skyLight;
@@ -76,6 +75,9 @@ final class CaveDecorator {
         // Block => revealed faces
         Map<Block, Context> blocks = new HashMap<>();
         List<Runnable> deferredActions = new ArrayList<>();
+        double dseed = noiseGenerator.noise(chunk.getX(), chunk.getZ());
+        int seed = (int) (dseed * (double) Integer.MAX_VALUE);
+        Random random = new Random(seed);
         for (int z = 0; z < 16; z += 1) {
             for (int x = 0; x < 16; x += 1) {
                 final int hi = world.getHighestBlockYAt(cx * 16 + x,
@@ -95,7 +97,7 @@ final class CaveDecorator {
                         }
                         if (nbor.getType() == Material.CAVE_AIR) {
                             if (context == null) {
-                                context = new Context(deferredActions);
+                                context = new Context(deferredActions, random);
                                 blocks.put(block, context);
                             }
                             context.faces.add(face);
@@ -107,7 +109,7 @@ final class CaveDecorator {
                             for (BlockFace face2 : FACING_NEIGHBORS) {
                                 if (nbor.getRelative(face2).getType() == Material.CAVE_AIR) {
                                     if (context == null) {
-                                        context = new Context(deferredActions);
+                                        context = new Context(deferredActions, random);
                                         blocks.put(block, context);
                                     }
                                     context.faces.add(face);
@@ -196,50 +198,44 @@ final class CaveDecorator {
                     return context.skyLight == 0 && context.horizontal;
                 })
             .collect(Collectors.toList());
+        if (oreBlocks.isEmpty()) return;
+        Random random = blocks.values().iterator().next().random;
         // For comparison:
         // Vanilla iron ore tries to spawn 20 times per chunk
         // Vanilla coal ore tries to spawn 20 times per chunk
-        // Many chunks have 500-1000 wall blocks; 800 / 80=20
-        int total = 8;
+        // Many chunks have 500-1000 wall blocks; 800 / 100 = 8
+        int total = (oreBlocks.size() - 1) / 100 + 1;
+        if (total > 10) total = 10;
+        if (total > 1) {
+            total += random.nextInt(total) - random.nextInt(total);
+        }
         ORE_BLOCKS:
         for (int i = 0; i < total; i += 1) {
             if (oreBlocks.isEmpty()) break;
             Block origin = oreBlocks.get(random.nextInt(oreBlocks.size()));
-            int veinSize;
-            Material ore;
-            Biomes.Type theBiome = biome != null
-                ? biome
-                : plugin.biomes.of(origin);
-            switch (theBiome) {
-            case COLD:
-            case SPRUCE:
-                ore = Material.IRON_ORE;
-                veinSize = 10 + getIntNoise(origin, 1.0, 4);
-                break;
-            case MESA:
-            case SAVANNA:
-            case DESERT:
-                ore = Material.GOLD_ORE;
-                veinSize = 10 + getIntNoise(origin, 1.0, 4);
-                break;
-            case JUNGLE:
-            case DARK_FOREST:
-                ore = Material.EMERALD_ORE;
-                veinSize = 7 + getIntNoise(origin, 1.0, 3);
-                break;
-            case MOUNTAIN:
-                ore = Material.DIAMOND_ORE;
-                veinSize = 4 + getIntNoise(origin, 1.0, 2);
-                break;
-            case PLAINS:
-            case FOREST:
-                ore = Material.COAL_ORE;
-                veinSize = 12 + getIntNoise(origin, 1.0, 6);
-                break;
-            default:
-                continue ORE_BLOCKS;
+            double noiseL = getNoise(origin, 8.0);
+            double noiseS = getNoise(origin, 1.0);
+            final Material ore;
+            final int veinSize;
+            if (noiseS > 0.1) {
+                // Slightly rarer valuables
+                if (noiseL < 0) {
+                    ore = Material.DIAMOND_ORE;
+                    veinSize = 4 + random.nextInt(3) - random.nextInt(3);
+                } else {
+                    ore = Material.EMERALD_ORE;
+                    veinSize = 7 + random.nextInt(4) - random.nextInt(4);
+                }
+            } else {
+                if (noiseL < 0) {
+                    ore = Material.GOLD_ORE;
+                    veinSize = 10 + random.nextInt(6) - random.nextInt(6);
+                } else {
+                    ore = Material.IRON_ORE;
+                    veinSize = 10 + random.nextInt(6) - random.nextInt(6);
+                }
             }
-            List<Block> vein = growVein(origin, veinSize);
+            List<Block> vein = growVein(origin, veinSize, random);
             for (Block block : vein) {
                 set(block, ore);
                 blocks.remove(vein);
@@ -248,7 +244,7 @@ final class CaveDecorator {
         }
     }
 
-    List<Block> growVein(Block origin, int size) {
+    List<Block> growVein(Block origin, int size, Random random) {
         List<Block> vein = new ArrayList<>(size);
         vein.add(origin);
         List<Block> adjacent = new ArrayList<>();
@@ -312,7 +308,7 @@ final class CaveDecorator {
             // Icicles
             double noise2 = getNoise(block, 1.0);
             if (noise2 > 0.5) {
-                int len = random.nextInt(Math.min(4, context.height)) + 1;
+                int len = context.random.nextInt(Math.min(4, context.height)) + 1;
                 for (int i = 1; i <= len; i += 1) {
                     block.getRelative(0, -i, 0).setType(Material.ICE, false);
                 }
@@ -320,7 +316,7 @@ final class CaveDecorator {
         } else if (context.floor && context.height > 1) {
             double noise2 = getNoise(block, 1.0);
             if (noise2 > 0.5) {
-                int len = random.nextInt(Math.min(4, context.height)) + 1;
+                int len = context.random.nextInt(Math.min(4, context.height)) + 1;
                 for (int i = 1; i <= len; i += 1) {
                     block.getRelative(0, i, 0).setType(Material.ICE, false);
                 }
@@ -332,7 +328,7 @@ final class CaveDecorator {
     boolean transformDesert(Block block, Context context) {
         double noise = getNoise(block, 8.0);
         if (noise < -0.75) {
-            Axis axis = Blocks.randomArray(Axis.values(), random);
+            Axis axis = Blocks.randomArray(Axis.values(), context.random);
             block.setBlockData(Blocks.oriented(Material.BONE_BLOCK, axis), false);
         } else if (noise < 0) {
             block.setType(Material.SAND, false);
@@ -346,7 +342,7 @@ final class CaveDecorator {
             if (noise2 > 0.33) {
                 block.setType(Material.SAND, false);
                 Block cactus = block.getRelative(0, 1, 0);
-                int len = 1 + random.nextInt(Math.min(3, context.height));
+                int len = 1 + context.random.nextInt(Math.min(3, context.height));
                 CACTI:
                 for (int i = 0; i < len; i += 1) {
                     if (!cactus.isEmpty()) break CACTI;
@@ -381,7 +377,7 @@ final class CaveDecorator {
                 if (noise2 > 0.33) {
                     // Bushes
                     Block log = block.getRelative(0, 1, 0);
-                    Axis axis = Blocks.randomArray(Axis.values(), random);
+                    Axis axis = Blocks.randomArray(Axis.values(), context.random);
                     log.setType(Material.JUNGLE_LOG, false);
                     for (BlockFace face : FACING_NEIGHBORS) {
                         if (face == BlockFace.DOWN) continue;
@@ -420,7 +416,7 @@ final class CaveDecorator {
                         Block vine = leaf.getRelative(face);
                         BlockFace vineFace = face.getOppositeFace();
                         BlockData data = Blocks.facing(Material.VINE, vineFace);
-                        int len = 1 + random.nextInt(context.height);
+                        int len = 1 + context.random.nextInt(context.height);
                         for (int i = 0; i < len && vine.isEmpty(); i += 1) {
                             vine.setBlockData(data, false);
                             vine = vine.getRelative(0, -1, 0);
@@ -630,7 +626,7 @@ final class CaveDecorator {
                     if (context.faces.contains(face)) hor.add(face);
                 }
                 if (!hor.isEmpty()) {
-                    BlockFace face = hor.get(random.nextInt(hor.size()));
+                    BlockFace face = hor.get(context.random.nextInt(hor.size()));
                     Block torch = block.getRelative(face);
                     if (torch.isEmpty()) {
                         if (noiseS > 0.8) {
@@ -672,7 +668,7 @@ final class CaveDecorator {
                     double noiseS = getNoise(block, 1.0);
                     if (noiseS > 0.8) {
                         spawnBrownMushroomCow(block.getLocation().add(0.5, 1.0, 0.5));
-                    //     int len = 1 + random.nextInt(Math.min(3, context.height));
+                    //     int len = 1 + context.random.nextInt(Math.min(3, context.height));
                     //     for (int i = 1; i <= len; i += 1) {
                     //         set(block, 0, i, 0, Material.SUGAR_CANE);
                     //     }
@@ -721,7 +717,7 @@ final class CaveDecorator {
                             set(above, Material.BROWN_MUSHROOM);
                         } else if (noiseS > -0.1) {
                             spawnBrownMushroomCow(above.getLocation().add(0.5, 0, 0.5));
-                            // int len = 1 + random.nextInt(Math.min(3, context.height));
+                            // int len = 1 + context.random.nextInt(Math.min(3, context.height));
                             // for (int i = 0; i < len; i += 1) {
                             //     set(above, 0, i, 0, Material.SUGAR_CANE);
                             // }
@@ -741,7 +737,7 @@ final class CaveDecorator {
         } else if (context.ceiling) {
             double noiseS = getNoise(block, 1.0);
             if (noiseS > 0.4 && context.height > 1) {
-                int len = 1 + random.nextInt(Math.min(4, context.height));
+                int len = 1 + context.random.nextInt(Math.min(4, context.height));
                 for (int i = 0; i < len; i += 1) {
                     set(block, Material.SLIME_BLOCK);
                     block = block.getRelative(0, -1, 0);
@@ -755,7 +751,7 @@ final class CaveDecorator {
                 for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                     if (!context.faces.contains(face)) continue;
                     Block nbor = block.getRelative(face);
-                    int len = 1 + random.nextInt(context.height);
+                    int len = 1 + context.random.nextInt(context.height);
                     for (int i = 0; i < len && nbor.isEmpty(); i += 1) {
                         set(nbor, Blocks.facing(Material.VINE, face.getOppositeFace()));
                         nbor = nbor.getRelative(0, -1, 0);
@@ -865,7 +861,7 @@ final class CaveDecorator {
                     if (context.faces.contains(face)) hor.add(face);
                 }
                 if (!hor.isEmpty()) {
-                    BlockFace face = hor.get(random.nextInt(hor.size()));
+                    BlockFace face = hor.get(context.random.nextInt(hor.size()));
                     Block hive = block.getRelative(face);
                     if (hive.isEmpty()) {
                         set(hive, Blocks.direct(Material.BEE_NEST, face));
@@ -920,7 +916,7 @@ final class CaveDecorator {
                     if (noiseS > 0.3) {
                         set(above, Material.DEAD_BUSH);
                     } else if (noiseS < -0.4) {
-                        int len = 1 + random.nextInt(Math.min(3, context.height));
+                        int len = 1 + context.random.nextInt(Math.min(3, context.height));
                         CACTUS:
                         for (int i = 0; i < len; i += 1) {
                             if (!above.isEmpty()) break;
