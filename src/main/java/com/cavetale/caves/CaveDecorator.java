@@ -205,7 +205,6 @@ final class CaveDecorator {
         // Vanilla coal ore tries to spawn 20 times per chunk
         // Many chunks have 500-1000 wall blocks; 800 / 200 = 4
         int total = (oreBlocks.size() - 1) / 200 + 1;
-        System.out.println("total=" + total);
         if (total > 8) total = 8;
         total += random.nextInt(4);
         ORE_BLOCKS:
