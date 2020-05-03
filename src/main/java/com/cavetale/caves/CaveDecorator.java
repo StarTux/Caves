@@ -147,10 +147,10 @@ final class CaveDecorator {
     boolean isInside(Block block) {
         if (block.isEmpty() || block.isLiquid()) return true;
         Material mat = block.getType();
-        if (!mat.isSolid() || !mat.isOccluding() || mat.isTransparent()) return true;
         if (Tag.FENCES.isTagged(mat)) return true;
         if (Tag.FLOWERS.isTagged(mat)) return true;
         if (Tag.CROPS.isTagged(mat)) return true;
+        if (Tag.RAILS.isTagged(mat)) return true;
         return false;
     }
 
@@ -203,12 +203,11 @@ final class CaveDecorator {
         // For comparison:
         // Vanilla iron ore tries to spawn 20 times per chunk
         // Vanilla coal ore tries to spawn 20 times per chunk
-        // Many chunks have 500-1000 wall blocks; 800 / 100 = 8
-        int total = (oreBlocks.size() - 1) / 100 + 1;
-        if (total > 10) total = 10;
-        if (total > 1) {
-            total += random.nextInt(total) - random.nextInt(total);
-        }
+        // Many chunks have 500-1000 wall blocks; 800 / 200 = 4
+        int total = (oreBlocks.size() - 1) / 200 + 1;
+        System.out.println("total=" + total);
+        if (total > 8) total = 8;
+        total += random.nextInt(4);
         ORE_BLOCKS:
         for (int i = 0; i < total; i += 1) {
             if (oreBlocks.isEmpty()) break;
@@ -217,31 +216,42 @@ final class CaveDecorator {
             double noiseS = getNoise(origin, 1.0);
             final Material ore;
             final int veinSize;
-            if (noiseS > 0.1) {
-                // Slightly rarer valuables
-                if (noiseL < 0) {
+            if (noiseS > 0.25) {
+                if (noiseL > 0) {
                     ore = Material.DIAMOND_ORE;
-                    veinSize = 4 + random.nextInt(3) - random.nextInt(3);
+                    veinSize = rndDist(random, 4, 3);
                 } else {
                     ore = Material.EMERALD_ORE;
-                    veinSize = 7 + random.nextInt(4) - random.nextInt(4);
+                    veinSize = rndDist(random, 4, 3);
                 }
-            } else {
-                if (noiseL < 0) {
+            } else if (noiseS < -0.25) {
+                if (noiseL > 0) {
                     ore = Material.GOLD_ORE;
-                    veinSize = 10 + random.nextInt(6) - random.nextInt(6);
+                    veinSize = rndDist(random, 6, 4);
                 } else {
                     ore = Material.IRON_ORE;
-                    veinSize = 10 + random.nextInt(6) - random.nextInt(6);
+                    veinSize = rndDist(random, 6, 4);
+                }
+            } else {
+                if (noiseL > 0) {
+                    ore = Material.LAPIS_ORE;
+                    veinSize = rndDist(random, 4, 3);
+                } else {
+                    ore = Material.REDSTONE_ORE;
+                    veinSize = rndDist(random, 6, 4);
                 }
             }
             List<Block> vein = growVein(origin, veinSize, random);
             for (Block block : vein) {
                 set(block, ore);
-                blocks.remove(vein);
+                blocks.remove(block);
             }
             oreBlocks.removeAll(vein);
         }
+    }
+
+    int rndDist(Random random, int median, int dist) {
+        return median + random.nextInt(dist + 1) - random.nextInt(dist + 1);
     }
 
     List<Block> growVein(Block origin, int size, Random random) {
@@ -595,14 +605,22 @@ final class CaveDecorator {
             }
         } else if (context.floor) {
             if (context.horizontal) {
+                if (!context.faces.contains(BlockFace.DOWN)
+                    && context.faces.contains(BlockFace.UP)
+                    && block.getRelative(BlockFace.UP).isEmpty()) {
                     List<BlockFace> faces = context.faces.stream()
                         .filter(f -> f.getModY() == 0)
                         .collect(Collectors.toList());
-                if (faces.size() == 1) {
-                    BlockFace face = faces.get(0).getOppositeFace();
-                    set(block, Blocks.direct(Material.COBBLESTONE_STAIRS, face));
+                    if (faces.size() == 1) {
+                        BlockFace face = faces.get(0).getOppositeFace();
+                        set(block, Blocks.direct(Material.COBBLESTONE_STAIRS, face));
+                    } else if (faces.size() > 1) {
+                        set(block, Material.COBBLESTONE_SLAB);
+                    } else {
+                        set(block, Material.COBBLESTONE);
+                    }
                 } else {
-                    set(block, Material.COBBLESTONE_SLAB);
+                    set(block, Material.POLISHED_ANDESITE);
                 }
             } else {
                 double noise = getNoise(block, 8.0);
