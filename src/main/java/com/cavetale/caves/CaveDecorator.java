@@ -650,7 +650,7 @@ final class CaveDecorator {
                     set(block, Material.ANDESITE);
                 }
             }
-            if (Math.abs(noiseS) > 0.8) {
+            if (noiseS > 0.9) {
                 List<BlockFace> hor = new ArrayList<>(4);
                 for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                     if (context.faces.contains(face)) hor.add(face);
@@ -659,7 +659,7 @@ final class CaveDecorator {
                     BlockFace face = hor.get(context.random.nextInt(hor.size()));
                     Block torch = block.getRelative(face);
                     if (torch.isEmpty()) {
-                        if (noiseS > 0.9) {
+                        if (noiseS > 0.95) {
                             set(torch, Blocks.direct(Material.WALL_TORCH, face));
                         } else {
                             set(torch, Blocks.direct(Material.REDSTONE_WALL_TORCH, face));
