@@ -203,8 +203,8 @@ final class CaveDecorator {
         // For comparison:
         // Vanilla iron ore tries to spawn 20 times per chunk
         // Vanilla coal ore tries to spawn 20 times per chunk
-        // Many chunks have 500-1000 wall blocks; 800 / 200 = 4
-        int total = oreBlocks.size() / 200;
+        // Many chunks have 500-1000 wall blocks; 800 / 100 = 8
+        int total = oreBlocks.size() / 100;
         if (total > 8) total = 8;
         ORE_BLOCKS:
         for (int i = 0; i < total; i += 1) {
@@ -215,29 +215,14 @@ final class CaveDecorator {
             final Material ore;
             final int veinSize;
             if (noiseS > 0.25) {
-                if (noiseL > 0) {
-                    ore = Material.DIAMOND_ORE;
-                    veinSize = rndDist(random, 4, 3);
-                } else {
-                    ore = Material.EMERALD_ORE;
-                    veinSize = rndDist(random, 4, 3);
-                }
+                ore = Material.DIAMOND_ORE;
+                veinSize = rndDist(random, 4, 3);
             } else if (noiseS < -0.25) {
-                if (noiseL > 0) {
-                    ore = Material.GOLD_ORE;
-                    veinSize = rndDist(random, 6, 4);
-                } else {
-                    ore = Material.IRON_ORE;
-                    veinSize = rndDist(random, 6, 4);
-                }
+                ore = Material.GOLD_ORE;
+                veinSize = rndDist(random, 6, 4);
             } else {
-                if (noiseL > 0) {
-                    ore = Material.LAPIS_ORE;
-                    veinSize = rndDist(random, 4, 3);
-                } else {
-                    ore = Material.REDSTONE_ORE;
-                    veinSize = rndDist(random, 6, 4);
-                }
+                ore = Material.IRON_ORE;
+                veinSize = rndDist(random, 6, 4);
             }
             List<Block> vein = growVein(origin, veinSize, random);
             for (Block block : vein) {
