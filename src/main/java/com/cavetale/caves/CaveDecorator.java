@@ -360,36 +360,57 @@ final class CaveDecorator {
     boolean transformJungle(Block block, Context context) {
         double noise = getNoise(block, 8.0);
         if (context.floor) {
-            if (noise < 0) {
-                block.setType(Material.GRASS_BLOCK, false);
-            } else {
-                block.setType(Material.GRASS_PATH, false);
-            }
-            if (context.height > 1) {
+            if (context.height >= 2) {
                 double noise2 = getNoise(block, 1.0);
-                if (noise2 > 0.33) {
+                if (noise2 > 0.6) {
                     // Bushes
+                    set(block, Material.JUNGLE_LOG);
                     Block log = block.getRelative(0, 1, 0);
-                    Axis axis = Blocks.randomArray(Axis.values(), context.random);
-                    log.setType(Material.JUNGLE_LOG, false);
+                    set(log, Material.JUNGLE_LOG);
                     for (BlockFace face : FACING_NEIGHBORS) {
                         if (face == BlockFace.DOWN) continue;
                         Block leaf = log.getRelative(face);
                         if (leaf.isEmpty()) {
-                            leaf.setBlockData(Blocks.leaves(Material.JUNGLE_LEAVES), false);
+                            set(leaf, Blocks.leaves(Material.JUNGLE_LEAVES));
                         }
                     }
                 } else if (noise2 < 0) {
                     // Grass
-                    block.setType(Material.GRASS_BLOCK, false);
+                    set(block, Material.GRASS_BLOCK);
                     Block above = block.getRelative(0, 1, 0);
-                    if (above.isEmpty() && context.height >= 2 && noise2 < -0.5) {
+                    if (above.isEmpty()) {
                         // Tall
-                        set(above, Blocks.lower(Material.TALL_GRASS));
-                        set(above, 0, 1, 0, Blocks.upper(Material.TALL_GRASS));
-                    } else {
-                        block.getRelative(0, 1, 0).setType(Material.GRASS, false);
+                        if (noise2 < -0.8) {
+                            Block above2 = block.getRelative(0, 2, 0);
+                            if (above2.isEmpty()) {
+                                set(above, Blocks.lower(Material.TALL_GRASS));
+                                set(above2, Blocks.upper(Material.TALL_GRASS));
+                            }
+                        } else if (noise2 < -0.6) {
+                            Block above2 = block.getRelative(0, 2, 0);
+                            if (above2.isEmpty()) {
+                                set(above, Blocks.lower(Material.LARGE_FERN));
+                                set(above2, Blocks.upper(Material.LARGE_FERN));
+                            }
+                        } else if (noise2 < -0.4) {
+                            set(above, Material.FERN);
+                        } else if (noise2 < -0.2) {
+                            set(above, Material.GRASS);
+                        } else if (noise2 < -0.15) {
+                            set(above, Material.BAMBOO);
+                            Block above2 = block.getRelative(0, 2, 0);
+                            int len = Math.min(4, 1 + context.random.nextInt(context.height));
+                            int i = 0;
+                            while (above2.isEmpty() && i++ < len) {
+                                above2.setType(Material.BAMBOO);
+                                above2 = above2.getRelative(BlockFace.UP);
+                            }
+                        }
                     }
+                } else if (noise > 0.5) {
+                    set(block, Material.GRASS_PATH);
+                } else {
+                    set(block, Material.GRASS_BLOCK);
                 }
             }
         } else if (context.ceiling) {
@@ -399,17 +420,17 @@ final class CaveDecorator {
                 block.setType(Material.COBBLESTONE, false);
             }
             // Leaves with vines
-            if (context.height > 1) {
+            if (context.height >= 3) {
                 double noise2 = getNoise(block, 1.0);
-                if (noise2 > 0.33) {
+                if (noise2 > 0.6) {
                     block.setType(Material.JUNGLE_LOG);
                     Block leaf = block.getRelative(0, -1, 0);
-                    leaf.setBlockData(Blocks.leaves(Material.JUNGLE_LEAVES), false);
+                    set(leaf, Blocks.leaves(Material.JUNGLE_LEAVES));
                     for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                         Block vine = leaf.getRelative(face);
                         BlockFace vineFace = face.getOppositeFace();
                         BlockData data = Blocks.facing(Material.VINE, vineFace);
-                        int len = 1 + context.random.nextInt(context.height);
+                        int len = Math.min(8, 1 + context.random.nextInt(context.height));
                         for (int i = 0; i < len && vine.isEmpty(); i += 1) {
                             vine.setBlockData(data, false);
                             vine = vine.getRelative(0, -1, 0);
