@@ -23,7 +23,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Bee;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.MushroomCow;
 import org.bukkit.util.noise.SimplexNoiseGenerator;
 import static com.cavetale.caves.Blocks.set;
 
@@ -482,7 +481,6 @@ final class CaveDecorator {
                             });
                     }
                 } else if (noise2 < -0.8) {
-                    spawnBrownMushroomCow(above.getLocation().add(0.5, 0, 0.5));
                 } else if (noise2 > 0.3) {
                     // Small mushrooms
                     if (noise < 0) {
@@ -702,13 +700,6 @@ final class CaveDecorator {
                     // Border
                     set(block, Material.GRASS_BLOCK);
                     double noiseS = getNoise(block, 1.0);
-                    if (noiseS > 0.8) {
-                        spawnBrownMushroomCow(block.getLocation().add(0.5, 1.0, 0.5));
-                    //     int len = 1 + context.random.nextInt(Math.min(3, context.height));
-                    //     for (int i = 1; i <= len; i += 1) {
-                    //         set(block, 0, i, 0, Material.SUGAR_CANE);
-                    //     }
-                    }
                 } else {
                     Block below = block.getRelative(0, -1, 0);
                     double noiseBelow = getNoise(block, 6.0);
@@ -752,11 +743,6 @@ final class CaveDecorator {
                         } else if (noiseS > 0.0) {
                             set(above, Material.BROWN_MUSHROOM);
                         } else if (noiseS > -0.1) {
-                            spawnBrownMushroomCow(above.getLocation().add(0.5, 0, 0.5));
-                            // int len = 1 + context.random.nextInt(Math.min(3, context.height));
-                            // for (int i = 0; i < len; i += 1) {
-                            //     set(above, 0, i, 0, Material.SUGAR_CANE);
-                            // }
                         } else if (noiseS > -0.2) {
                             set(above, Material.DEAD_BUSH);
                         }
@@ -796,12 +782,6 @@ final class CaveDecorator {
             }
         }
         return true;
-    }
-
-    void spawnBrownMushroomCow(Location loc) {
-        loc.getWorld().spawn(loc, MushroomCow.class, mc -> {
-                mc.setVariant(MushroomCow.Variant.BROWN);
-            });
     }
 
     /**
