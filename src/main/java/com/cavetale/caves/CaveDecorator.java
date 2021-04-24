@@ -12,17 +12,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.bukkit.Axis;
 import org.bukkit.Chunk;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.TreeType;
 import org.bukkit.World;
-import org.bukkit.block.Beehive;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Bee;
-import org.bukkit.entity.EntityType;
 import org.bukkit.util.noise.SimplexNoiseGenerator;
 import static com.cavetale.caves.Blocks.set;
 
@@ -376,36 +372,6 @@ final class CaveDecorator {
                 } else if (noise2 < 0) {
                     // Grass
                     set(block, Material.GRASS_BLOCK);
-                    Block above = block.getRelative(0, 1, 0);
-                    if (above.isEmpty()) {
-                        // Tall
-                        if (noise2 < -0.8) {
-                            Block above2 = block.getRelative(0, 2, 0);
-                            if (above2.isEmpty()) {
-                                set(above, Blocks.lower(Material.TALL_GRASS));
-                                set(above2, Blocks.upper(Material.TALL_GRASS));
-                            }
-                        } else if (noise2 < -0.6) {
-                            Block above2 = block.getRelative(0, 2, 0);
-                            if (above2.isEmpty()) {
-                                set(above, Blocks.lower(Material.LARGE_FERN));
-                                set(above2, Blocks.upper(Material.LARGE_FERN));
-                            }
-                        } else if (noise2 < -0.4) {
-                            set(above, Material.FERN);
-                        } else if (noise2 < -0.2) {
-                            set(above, Material.GRASS);
-                        } else if (noise2 < -0.15) {
-                            set(above, Material.BAMBOO);
-                            Block above2 = block.getRelative(0, 2, 0);
-                            int len = Math.min(4, 1 + context.random.nextInt(context.height));
-                            int i = 0;
-                            while (above2.isEmpty() && i++ < len) {
-                                above2.setType(Material.BAMBOO);
-                                above2 = above2.getRelative(BlockFace.UP);
-                            }
-                        }
-                    }
                 } else if (noise > 0.5) {
                     set(block, Material.GRASS_PATH);
                 } else {
@@ -734,8 +700,6 @@ final class CaveDecorator {
                         if (noiseS > 0.4) {
                             set(above, Material.DEAD_BUSH);
                         } else if (noiseS > 0.3) {
-                            set(above, Blocks.lower(Material.TALL_GRASS));
-                            set(above, 0, 1, 0, Blocks.upper(Material.TALL_GRASS));
                         } else if (noiseS > 0.2) {
                             set(above, Material.GRASS);
                         } else if (noiseS > 0.1) {
@@ -785,7 +749,7 @@ final class CaveDecorator {
     }
 
     /**
-     * Grassy floor with flowers. A natural look. Beehives.
+     * Grassy floor with flowers. A natural look.
      */
     boolean transformFlowers(Block block, Context context) {
         if (context.floor) {
@@ -822,32 +786,13 @@ final class CaveDecorator {
                     case 3:
                         set(above, Material.LILY_OF_THE_VALLEY); break;
                     case 4:
-                        set(above, Material.WITHER_ROSE); break;
                     case 5:
-                        if (context.height < 2) break;
-                        set(above, Blocks.lower(Material.SUNFLOWER));
-                        set(above, 0, 1, 0, Blocks.upper(Material.SUNFLOWER));
-                        break;
                     case 6:
-                        if (context.height < 2) break;
-                        set(above, Blocks.lower(Material.LILAC));
-                        set(above, 0, 1, 0, Blocks.upper(Material.LILAC));
-                        break;
                     case 7:
-                        if (context.height < 2) break;
-                        set(above, Blocks.lower(Material.ROSE_BUSH));
-                        set(above, 0, 1, 0, Blocks.upper(Material.ROSE_BUSH));
-                        break;
                     case 8:
-                        if (context.height < 2) break;
-                        set(above, Blocks.lower(Material.PEONY));
-                        set(above, 0, 1, 0, Blocks.upper(Material.PEONY));
-                        break;
                     default: break;
                     }
                 } else if (noiseS < -0.5) {
-                    set(above, Blocks.lower(Material.TALL_GRASS));
-                    set(above, 0, 1, 0, Blocks.upper(Material.TALL_GRASS));
                 } else if (noiseS < -0.2) {
                     set(above, Material.GRASS);
                 }
@@ -875,20 +820,6 @@ final class CaveDecorator {
                 List<BlockFace> hor = new ArrayList<>(4);
                 for (BlockFace face : HORIZONTAL_NEIGHBORS) {
                     if (context.faces.contains(face)) hor.add(face);
-                }
-                if (!hor.isEmpty()) {
-                    BlockFace face = hor.get(context.random.nextInt(hor.size()));
-                    Block hive = block.getRelative(face);
-                    if (hive.isEmpty()) {
-                        set(hive, Blocks.direct(Material.BEE_NEST, face));
-                        Beehive beehive = (Beehive) hive.getState();
-                        Bee bee = (Bee) block.getWorld().spawnEntity(block.getLocation(),
-                                                                     EntityType.BEE);
-                        if (bee != null) {
-                            beehive.addEntity(bee);
-                            beehive.update();
-                        }
-                    }
                 }
             }
         }
