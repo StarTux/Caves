@@ -18,7 +18,6 @@ import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.util.noise.SimplexNoiseGenerator;
 import static com.cavetale.caves.Blocks.set;
 
@@ -384,23 +383,13 @@ final class CaveDecorator {
             } else {
                 block.setType(Material.COBBLESTONE, false);
             }
-            // Leaves with vines
+            // Leaves
             if (context.height >= 3) {
                 double noise2 = getNoise(block, 1.0);
                 if (noise2 > 0.6) {
                     block.setType(Material.JUNGLE_LOG);
                     Block leaf = block.getRelative(0, -1, 0);
                     set(leaf, Blocks.leaves(Material.JUNGLE_LEAVES));
-                    for (BlockFace face : HORIZONTAL_NEIGHBORS) {
-                        Block vine = leaf.getRelative(face);
-                        BlockFace vineFace = face.getOppositeFace();
-                        BlockData data = Blocks.facing(Material.VINE, vineFace);
-                        int len = Math.min(8, 1 + context.random.nextInt(context.height));
-                        for (int i = 0; i < len && vine.isEmpty(); i += 1) {
-                            vine.setBlockData(data, false);
-                            vine = vine.getRelative(0, -1, 0);
-                        }
-                    }
                 }
             }
         } else {
@@ -732,16 +721,6 @@ final class CaveDecorator {
                 set(block, Blocks.leaves(Material.OAK_LEAVES));
                 if (noiseS < -0.3) {
                     set(block, 0, 1, 0, Material.OAK_WOOD);
-                }
-                // Hanging vines
-                for (BlockFace face : HORIZONTAL_NEIGHBORS) {
-                    if (!context.faces.contains(face)) continue;
-                    Block nbor = block.getRelative(face);
-                    int len = 1 + context.random.nextInt(context.height);
-                    for (int i = 0; i < len && nbor.isEmpty(); i += 1) {
-                        set(nbor, Blocks.facing(Material.VINE, face.getOppositeFace()));
-                        nbor = nbor.getRelative(0, -1, 0);
-                    }
                 }
             }
         }
