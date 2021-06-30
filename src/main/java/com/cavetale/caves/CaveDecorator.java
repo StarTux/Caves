@@ -55,7 +55,6 @@ final class CaveDecorator {
         final Random random;
         Set<BlockFace> faces = EnumSet.noneOf(BlockFace.class);
         int height;
-        int skyLight;
         boolean floor;
         boolean ceiling;
         boolean wall;
@@ -84,24 +83,20 @@ final class CaveDecorator {
                     if (!canReplace(block)) continue;
                     for (BlockFace face : FACING_NEIGHBORS) {
                         Block nbor = block.getRelative(face);
-                        if (nbor.getType() == Material.AIR) {
+                        if (nbor.getLightFromSky() > 0) {
                             context = null;
                             blocks.remove(block);
                             continue BLOCK;
                         }
-                        if (nbor.getType() == Material.CAVE_AIR) {
+                        if (nbor.isEmpty()) {
                             if (context == null) {
                                 context = new Context(deferredActions, random);
                                 blocks.put(block, context);
                             }
                             context.faces.add(face);
-                            int skyLight = nbor.getLightFromSky();
-                            if (skyLight > context.skyLight) {
-                                context.skyLight = skyLight;
-                            }
                         } else if (isInside(nbor)) {
                             for (BlockFace face2 : FACING_NEIGHBORS) {
-                                if (nbor.getRelative(face2).getType() == Material.CAVE_AIR) {
+                                if (nbor.getRelative(face2).isEmpty()) {
                                     if (context == null) {
                                         context = new Context(deferredActions, random);
                                         blocks.put(block, context);
@@ -189,7 +184,7 @@ final class CaveDecorator {
             .filter(b -> b.getY() >= 16)
             .filter(b -> {
                     Context context = blocks.get(b);
-                    return context.skyLight == 0 && context.horizontal;
+                    return context.horizontal;
                 })
             .collect(Collectors.toList());
         if (oreBlocks.isEmpty()) return;
@@ -372,7 +367,7 @@ final class CaveDecorator {
                     // Grass
                     set(block, Material.GRASS_BLOCK);
                 } else if (noise > 0.5) {
-                    set(block, Material.GRASS_PATH);
+                    set(block, Material.DIRT_PATH);
                 } else {
                     set(block, Material.GRASS_BLOCK);
                 }
