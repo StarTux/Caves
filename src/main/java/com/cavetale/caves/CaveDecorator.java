@@ -253,6 +253,7 @@ final class CaveDecorator {
         Biomes.Type theBiome = biome != null
             ? biome
             : plugin.biomes.of(block.getBiome());
+        if (theBiome == null) return false;
         switch (theBiome) {
         case COLD: return transformCold(block, context);
         case JUNGLE: return transformJungle(block, context);
