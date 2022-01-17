@@ -22,7 +22,7 @@ import org.bukkit.util.noise.SimplexNoiseGenerator;
 import static com.cavetale.caves.Blocks.set;
 
 /**
- * Goal: Have 1 cave decoration for each Biome.Type (some may share).
+ * Goal: Have 1 cave decoration for each Biomes.Type (some may share).
  * Future: Have more than 1 variant via larger scale noise mapping.
  */
 final class CaveDecorator {
