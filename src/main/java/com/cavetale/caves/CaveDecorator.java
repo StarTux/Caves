@@ -764,7 +764,9 @@ final class CaveDecorator {
                     case 5:
                     case 6:
                     case 7:
+                        break;
                     case 8:
+                        set(above, Material.WITHER_ROSE); break;
                     default: break;
                     }
                 } else if (noiseS < -0.5) {
