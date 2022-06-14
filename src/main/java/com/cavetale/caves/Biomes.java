@@ -31,6 +31,7 @@ final class Biomes {
         CAVES("CAVES"),
         NETHER("NETHER", "BASALT_DELTAS", "SOUL_SAND_VALLEY"),
         END("END", "VOID"),
+        DEEP_DARK("DEEP_DARK"),
         CUSTOM("CUSTOM");
 
         public final String[] keywords;
