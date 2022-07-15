@@ -118,12 +118,11 @@ final class CaveDecorator {
         for (Map.Entry<Block, Context> entry : blocks.entrySet()) {
             Block block = entry.getKey();
             Biome biome = block.getBiome();
-            if (biome == Biome.LUSH_CAVES) continue;
-            if (Structures.get().structurePartAt(block)) continue;
             Biomes.Type biomeType = forcedBiome != null
                 ? forcedBiome
                 : plugin.biomes.of(biome);
-            if (biomeType == null) continue;
+            if (biomeType == null || biomeType == Biomes.Type.CAVES) continue;
+            if (Structures.get().structurePartAt(block)) continue;
             Context context = entry.getValue();
             transform(block, context, biomeType);
         }
