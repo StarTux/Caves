@@ -1,5 +1,6 @@
 package com.cavetale.caves;
 
+import com.cavetale.core.structure.Structures;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.TreeType;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.noise.SimplexNoiseGenerator;
@@ -42,7 +44,7 @@ final class CaveDecorator {
         BlockFace.SOUTH,
         BlockFace.WEST
     };
-    @Setter private Biomes.Type biome = null; // debug
+    @Setter private Biomes.Type forcedBiome = null; // debug
 
     CaveDecorator(final CavesPlugin plugin, final World world) {
         this.plugin = plugin;
@@ -115,8 +117,15 @@ final class CaveDecorator {
         placeOres(blocks);
         for (Map.Entry<Block, Context> entry : blocks.entrySet()) {
             Block block = entry.getKey();
+            Biome biome = block.getBiome();
+            if (biome == Biome.LUSH_CAVES) continue;
+            if (Structures.get().structurePartAt(block)) continue;
+            Biomes.Type biomeType = forcedBiome != null
+                ? forcedBiome
+                : plugin.biomes.of(biome);
+            if (biomeType == null) continue;
             Context context = entry.getValue();
-            transform(block, context);
+            transform(block, context, biomeType);
         }
         for (Runnable run : deferredActions) run.run();
     }
@@ -249,12 +258,8 @@ final class CaveDecorator {
         return vein;
     }
 
-    boolean transform(Block block, Context context) {
-        Biomes.Type theBiome = biome != null
-            ? biome
-            : plugin.biomes.of(block.getBiome());
-        if (theBiome == null) return false;
-        switch (theBiome) {
+    boolean transform(Block block, Context context, Biomes.Type biomeType) {
+        switch (biomeType) {
         case COLD: return transformCold(block, context);
         case JUNGLE: return transformJungle(block, context);
         case DESERT: return transformDesert(block, context);
@@ -432,6 +437,7 @@ final class CaveDecorator {
                             });
                     }
                 } else if (noise2 < -0.8) {
+                    return false;
                 } else if (noise2 > 0.3) {
                     // Small mushrooms
                     if (noise < 0) {
@@ -685,6 +691,7 @@ final class CaveDecorator {
                         if (noiseS > 0.4) {
                             set(above, Material.DEAD_BUSH);
                         } else if (noiseS > 0.3) {
+                            return false;
                         } else if (noiseS > 0.2) {
                             set(above, Material.GRASS);
                         } else if (noiseS > 0.1) {
@@ -692,6 +699,7 @@ final class CaveDecorator {
                         } else if (noiseS > 0.0) {
                             set(above, Material.BROWN_MUSHROOM);
                         } else if (noiseS > -0.1) {
+                            return false;
                         } else if (noiseS > -0.2) {
                             set(above, Material.DEAD_BUSH);
                         }
@@ -770,6 +778,7 @@ final class CaveDecorator {
                     default: break;
                     }
                 } else if (noiseS < -0.5) {
+                    return false;
                 } else if (noiseS < -0.2) {
                     set(above, Material.GRASS);
                 }

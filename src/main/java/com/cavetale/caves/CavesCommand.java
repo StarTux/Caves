@@ -33,14 +33,14 @@ public final class CavesCommand implements CommandExecutor {
             if (args.length >= 2) {
                 r = Integer.parseInt(args[1]);
             }
-            plugin.getCaveDecorator(world).setBiome(biome);
+            plugin.getCaveDecorator(world).setForcedBiome(biome);
             for (int z = chunk.getZ() - r; z <= chunk.getZ() + r; z += 1) {
                 for (int x = chunk.getX() - r; x <= chunk.getX() + r; x += 1) {
                     plugin.getCaveDecorator(world)
                         .transformChunk(world.getChunkAt(x, z));
                 }
             }
-            plugin.getCaveDecorator(world).setBiome(null);
+            plugin.getCaveDecorator(world).setForcedBiome(null);
             int count = 1 + 2 * r;
             count *= count;
             player.sendMessage(count + " chunks transformed: "

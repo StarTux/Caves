@@ -1,15 +1,26 @@
 main: com.cavetale.caves.CavesPlugin
 name: Caves
+
 version: 0.1
 api-version: 1.19
+
 description: Generate more interesting themed caves
 author: StarTux
 website: https://cavetale.com
-depend: []
+
+depend: [Core]
 softdepend: [Decorator]
+
 commands:
+
   caves:
     aliases: [cave]
     permission: caves.caves
     usage: |-
       /caves test - Test
+
+permissions:
+
+  caves.caves:
+    description: Use /caves
+    default: op

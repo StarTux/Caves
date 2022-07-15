@@ -56,7 +56,6 @@
       <artifactId>paper-api</artifactId>
       <version>1.19-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
 
     <!-- Lombok -->
@@ -65,7 +64,14 @@
       <artifactId>lombok</artifactId>
       <version>1.18.20</version>
       <scope>compile</scope>
-      <optional>true</optional>
+    </dependency>
+
+    <!-- Core -->
+    <dependency>
+      <groupId>com.cavetale.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Decorator -->
@@ -74,7 +80,6 @@
       <artifactId>decorator</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
 
   </dependencies>
