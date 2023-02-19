@@ -2,14 +2,11 @@ package com.cavetale.caves;
 
 import com.cavetale.core.structure.Structures;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.bukkit.Axis;
 import org.bukkit.Chunk;
@@ -46,24 +43,12 @@ final class CaveDecorator {
     };
     @Setter private Biomes.Type forcedBiome = null; // debug
 
-    CaveDecorator(final CavesPlugin plugin, final World world) {
+    protected CaveDecorator(final CavesPlugin plugin, final World world) {
         this.plugin = plugin;
         noiseGenerator = new SimplexNoiseGenerator(world.getSeed());
     }
 
-    @RequiredArgsConstructor
-    static final class Context {
-        final List<Runnable> deferredActions;
-        final Random random;
-        Set<BlockFace> faces = EnumSet.noneOf(BlockFace.class);
-        int height;
-        boolean floor;
-        boolean ceiling;
-        boolean wall;
-        boolean horizontal;
-    }
-
-    void transformChunk(Chunk chunk) {
+    protected void transformChunk(Chunk chunk) {
         World world = chunk.getWorld();
         final int cx = chunk.getX();
         final int cz = chunk.getZ();
@@ -129,7 +114,7 @@ final class CaveDecorator {
         for (Runnable run : deferredActions) run.run();
     }
 
-    boolean canReplace(Block block) {
+    private boolean canReplace(Block block) {
         switch (block.getType()) {
         case STONE:
         case ANDESITE: case DIORITE: case GRANITE:
@@ -141,7 +126,7 @@ final class CaveDecorator {
         }
     }
 
-    boolean isInside(Block block) {
+    private boolean isInside(Block block) {
         if (block.isEmpty() || block.isLiquid()) return true;
         Material mat = block.getType();
         if (Tag.FENCES.isTagged(mat)) return true;
@@ -151,7 +136,7 @@ final class CaveDecorator {
         return false;
     }
 
-    void classify(Block block, Context context) {
+    private void classify(Block block, Context context) {
         // Figure out orientation and height
         if (context.faces.contains(BlockFace.UP)) {
             Block above = block.getRelative(0, 1, 0);
@@ -187,7 +172,7 @@ final class CaveDecorator {
      * Place ores. The blocks map will be modified so that ore blocks
      * are removed.
      */
-    void placeOres(Map<Block, Context> blocks) {
+    private void placeOres(Map<Block, Context> blocks) {
         List<Block> oreBlocks = blocks.keySet().stream()
             .filter(b -> b.getY() >= 16)
             .filter(b -> {
@@ -230,11 +215,11 @@ final class CaveDecorator {
         }
     }
 
-    int rndDist(Random random, int median, int dist) {
+    private int rndDist(Random random, int median, int dist) {
         return median + random.nextInt(dist + 1) - random.nextInt(dist + 1);
     }
 
-    List<Block> growVein(Block origin, int size, Random random) {
+    private List<Block> growVein(Block origin, int size, Random random) {
         List<Block> vein = new ArrayList<>(size);
         vein.add(origin);
         List<Block> adjacent = new ArrayList<>();
@@ -257,7 +242,7 @@ final class CaveDecorator {
         return vein;
     }
 
-    boolean transform(Block block, Context context, Biomes.Type biomeType) {
+    private boolean transform(Block block, Context context, Biomes.Type biomeType) {
         switch (biomeType) {
         case COLD: return transformCold(block, context);
         case JUNGLE: return transformJungle(block, context);
@@ -280,7 +265,7 @@ final class CaveDecorator {
         }
     }
 
-    boolean transformCold(Block block, Context context) {
+    private boolean transformCold(Block block, Context context) {
         double noise = getNoise(block, 8.0);
         if (noise < -0.75) {
             block.setType(Material.DIRT, false);
@@ -312,7 +297,7 @@ final class CaveDecorator {
         return true;
     }
 
-    boolean transformDesert(Block block, Context context) {
+    private boolean transformDesert(Block block, Context context) {
         double noise = getNoise(block, 8.0);
         if (noise < -0.75) {
             Axis axis = Blocks.randomArray(Axis.values(), context.random);
@@ -351,7 +336,7 @@ final class CaveDecorator {
         return true;
     }
 
-    boolean transformJungle(Block block, Context context) {
+    private boolean transformJungle(Block block, Context context) {
         double noise = getNoise(block, 8.0);
         if (context.floor) {
             if (context.height >= 2) {
@@ -411,7 +396,7 @@ final class CaveDecorator {
      * Mycelium on the floor, mushroom stem and blocks make up the
      * ceiling. Large and small mushrooms sprouting everywhere.
      */
-    boolean transformMushroom(Block block, Context context) {
+    private boolean transformMushroom(Block block, Context context) {
         double noise = getNoise(block, 8.0);
         if (context.floor) {
             block.setType(Material.MYCELIUM, false);
@@ -472,7 +457,7 @@ final class CaveDecorator {
      * floor is sand and gravel. The ceiling is lit by sea
      * lanterns. Water drips from the ceiling.
      */
-    boolean transformOcean(Block block, Context context) {
+    private boolean transformOcean(Block block, Context context) {
         if (context.floor) {
             double noise = getNoise(block, 8.0);
             if (noise < -0.6 || noise > 0.6) {
@@ -530,7 +515,7 @@ final class CaveDecorator {
      * Abandoned mineshafts with wooden rafters. The walls lit by
      * redstone torches, the rafters rarely by lanterns.
      */
-    boolean transformMountain(Block block, Context context,
+    private boolean transformMountain(Block block, Context context,
                               Material log, Material strippedLog) {
         if (context.ceiling) {
             final double scale = 128.0;
@@ -635,7 +620,7 @@ final class CaveDecorator {
      * Dirt and clay floor with puddles of water and lily pads.
      * Slime stalactites.
      */
-    boolean transformSwamp(Block block, Context context) {
+    private boolean transformSwamp(Block block, Context context) {
         if (context.floor) {
             double noise = getNoise(block, 8.0);
             if (noise < 0) {
@@ -733,7 +718,7 @@ final class CaveDecorator {
     /**
      * Grassy floor with flowers. A natural look.
      */
-    boolean transformFlowers(Block block, Context context) {
+    private boolean transformFlowers(Block block, Context context) {
         if (context.floor) {
             set(block, Material.GRASS_BLOCK);
             Block above = block.getRelative(0, 1, 0);
@@ -814,7 +799,7 @@ final class CaveDecorator {
     /**
      * Sand, gravel, clay. The ceiling is made of clay and diorite.
      */
-    boolean transformRiver(Block block, Context context) {
+    private boolean transformRiver(Block block, Context context) {
         if (context.floor) {
             double noise = getNoise(block, 8);
             if (noise < -0.5) {
@@ -835,7 +820,7 @@ final class CaveDecorator {
         return true;
     }
 
-    boolean transformMesa(Block block, Context context) {
+    private boolean transformMesa(Block block, Context context) {
         if (context.floor) {
             double noise = getNoise(block, 8);
             if (noise > 0.5) {
@@ -878,19 +863,19 @@ final class CaveDecorator {
         return true;
     }
 
-    int getIntNoise(Block block, double scale, int factor) {
+    private int getIntNoise(Block block, double scale, int factor) {
         double noise = getNoise(block, scale);
         int val = (int) (noise * factor);
         return val;
     }
 
-    double getNoise(Block block, double scale) {
+    private double getNoise(Block block, double scale) {
         return noiseGenerator.noise(block.getX() / scale,
                                     block.getY() / scale,
                                     block.getZ() / scale);
     }
 
-    void onChunkDecorate(Chunk chunk) {
+    protected void onChunkDecorate(Chunk chunk) {
         transformChunk(chunk);
     }
 }

@@ -19,7 +19,7 @@ public final class CavesCommand implements CommandExecutor {
         return onCommand(sender, args[0], Arrays.copyOfRange(args, 1, args.length));
     }
 
-    boolean onCommand(CommandSender sender, String cmd, String[] args) {
+    protected boolean onCommand(CommandSender sender, String cmd, String[] args) {
         switch (cmd) {
         case "test": {
             if (args.length > 2) return false;
