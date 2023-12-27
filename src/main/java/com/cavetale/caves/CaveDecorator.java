@@ -677,7 +677,7 @@ final class CaveDecorator {
                         } else if (noiseS > 0.3) {
                             return false;
                         } else if (noiseS > 0.2) {
-                            set(above, Material.GRASS);
+                            set(above, Material.SHORT_GRASS);
                         } else if (noiseS > 0.1) {
                             set(above, Material.BLUE_ORCHID);
                         } else if (noiseS > 0.0) {
@@ -764,7 +764,7 @@ final class CaveDecorator {
                 } else if (noiseS < -0.5) {
                     return false;
                 } else if (noiseS < -0.2) {
-                    set(above, Material.GRASS);
+                    set(above, Material.SHORT_GRASS);
                 }
             }
         } else if (context.ceiling) {
