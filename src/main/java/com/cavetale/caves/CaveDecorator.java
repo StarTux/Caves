@@ -60,10 +60,11 @@ final class CaveDecorator {
         Random random = new Random(seed);
         for (int z = 0; z < 16; z += 1) {
             for (int x = 0; x < 16; x += 1) {
+                final int lo = world.getMinHeight();
                 final int hi = world.getHighestBlockYAt(cx * 16 + x,
                                                         cz * 16 + z);
                 BLOCK:
-                for (int y = 0; y < hi; y += 1) {
+                for (int y = lo; y < hi; y += 1) {
                     Block block = chunk.getBlock(x, y, z);
                     Context context = null;
                     if (block.isEmpty()) continue;
@@ -120,6 +121,9 @@ final class CaveDecorator {
         case ANDESITE: case DIORITE: case GRANITE:
         case DIRT: case GRAVEL:
         case COAL_ORE: case IRON_ORE:
+        case DEEPSLATE_COAL_ORE: case DEEPSLATE_IRON_ORE:
+        case DEEPSLATE:
+        case TUFF:
             return true;
         default:
             return false;
@@ -174,7 +178,6 @@ final class CaveDecorator {
      */
     private void placeOres(Map<Block, Context> blocks) {
         List<Block> oreBlocks = blocks.keySet().stream()
-            .filter(b -> b.getY() >= 16)
             .filter(b -> {
                     Context context = blocks.get(b);
                     return context.horizontal;
@@ -192,18 +195,23 @@ final class CaveDecorator {
         for (int i = 0; i < total; i += 1) {
             if (oreBlocks.isEmpty()) break;
             Block origin = oreBlocks.get(random.nextInt(oreBlocks.size()));
-            double noiseL = getNoise(origin, 8.0);
             double noiseS = getNoise(origin, 1.0);
             final Material ore;
             final int veinSize;
             if (noiseS > 0.25) {
-                ore = Material.DIAMOND_ORE;
+                ore = origin.getY() < 4
+                    ? Material.DEEPSLATE_DIAMOND_ORE
+                    : Material.DIAMOND_ORE;
                 veinSize = rndDist(random, 4, 3);
             } else if (noiseS < -0.25) {
-                ore = Material.GOLD_ORE;
+                ore = origin.getY() < 4
+                    ? Material.DEEPSLATE_GOLD_ORE
+                    : Material.GOLD_ORE;
                 veinSize = rndDist(random, 6, 4);
             } else {
-                ore = Material.IRON_ORE;
+                ore = origin.getY() < 4
+                    ? Material.DEEPSLATE_LAPIS_ORE
+                    : Material.LAPIS_ORE;
                 veinSize = rndDist(random, 6, 4);
             }
             List<Block> vein = growVein(origin, veinSize, random);
