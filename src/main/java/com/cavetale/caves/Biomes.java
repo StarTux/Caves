@@ -1,20 +1,26 @@
 package com.cavetale.caves;
 
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
-import org.bukkit.plugin.java.JavaPlugin;
 
+@Getter
 @RequiredArgsConstructor
 final class Biomes {
-    private final JavaPlugin plugin;
-    final Map<Biome, Type> biomes = new EnumMap<>(Biome.class);
-    boolean reportDuplicateBiomes = false;
+    private final Logger logger;
+    private final Map<Biome, Type> biomes = new EnumMap<>(Biome.class);
+    private final Map<Type, Set<Biome>> types = new EnumMap<>(Type.class);
+    @Setter private boolean reportDuplicateBiomes = false;
 
     enum Type {
-        COLD("SNOW", "ICE", "FROZEN", "GROVE"),
+        COLD("SNOW", "ICE", "FROZEN"),
         MESA("BADLAND"),
         SAVANNA("SAVANNA"),
         MUSHROOM("MUSHROOM"),
@@ -26,7 +32,7 @@ final class Biomes {
         DARK_FOREST("DARK_FOREST"),
         SPRUCE("TAIGA", "SPRUCE"),
         PLAINS("PLAINS", "SUNFLOWER", "MEADOW"),
-        FOREST("FOREST", "WOOD", "BIRCH"),
+        FOREST("FOREST", "WOOD", "BIRCH", "CHERRY_GROVE"),
         RIVER("RIVER"),
         CAVES("CAVES"),
         NETHER("NETHER", "BASALT_DELTAS", "SOUL_SAND_VALLEY"),
@@ -41,7 +47,7 @@ final class Biomes {
         }
     }
 
-    void load() {
+    public void load() {
         for (Biome biome : Biome.values()) {
             for (Type type : Type.values()) {
                 String name = biome.name();
@@ -49,16 +55,17 @@ final class Biomes {
                     if (name.contains(keyword)) {
                         Type exist = biomes.get(biome);
                         if (reportDuplicateBiomes && exist != null && exist != type) {
-                            plugin.getLogger().info("Duplicate: " + biome + ": "
-                                             + biomes.get(biome) + ", " + type);
+                            logger.info("Duplicate: " + biome + ": "
+                                        + biomes.get(biome) + ", " + type);
                             continue;
                         }
                         biomes.put(biome, type);
+                        types.computeIfAbsent(type, t -> new HashSet<>()).add(biome);
                     }
                 }
             }
             if (!biomes.containsKey(biome)) {
-                plugin.getLogger().warning("No matching biome: " + biome);
+                logger.warning("No matching biome: " + biome);
             }
         }
     }

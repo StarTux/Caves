@@ -105,7 +105,7 @@ final class CaveDecorator {
             Biome biome = block.getBiome();
             Biomes.Type biomeType = forcedBiome != null
                 ? forcedBiome
-                : plugin.biomes.of(biome);
+                : plugin.getBiomes().of(biome);
             if (biomeType == null || biomeType == Biomes.Type.CAVES) continue;
             if (Structures.get().structurePartAt(block)) continue;
             Context context = entry.getValue();
