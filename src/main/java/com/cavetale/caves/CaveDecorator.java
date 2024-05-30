@@ -449,6 +449,7 @@ final class CaveDecorator {
                 block.setType(Material.RED_MUSHROOM_BLOCK, false);
             }
         } else if (context.wall) {
+            if (block.getY() < 4) return false;
             if (noise < -0.25) {
                 block.setType(Material.BROWN_MUSHROOM_BLOCK, false);
             } else if (noise > 0.25) {
@@ -589,18 +590,20 @@ final class CaveDecorator {
             }
         } else if (context.wall) {
             double noiseS = getNoise(block, 1.0);
-            if (noiseS > 0.5) {
-                set(block, Material.MOSSY_STONE_BRICKS);
-            } else if (noiseS < -0.5) {
-                set(block, Material.CRACKED_STONE_BRICKS);
-            } else {
-                double noise = getNoise(block, 8.0);
-                if (noise < 0) {
-                    set(block, Material.STONE);
-                } else if (noise > 0.6) {
-                    set(block, Material.POLISHED_ANDESITE);
+            if (block.getY() >= 4) {
+                if (noiseS > 0.5) {
+                    set(block, Material.MOSSY_STONE_BRICKS);
+                } else if (noiseS < -0.5) {
+                    set(block, Material.CRACKED_STONE_BRICKS);
                 } else {
-                    set(block, Material.ANDESITE);
+                    double noise = getNoise(block, 8.0);
+                    if (noise < 0) {
+                        set(block, Material.STONE);
+                    } else if (noise > 0.6) {
+                        set(block, Material.POLISHED_ANDESITE);
+                    } else {
+                        set(block, Material.ANDESITE);
+                    }
                 }
             }
             if (noiseS > 0.9) {
@@ -699,6 +702,7 @@ final class CaveDecorator {
                 }
             }
         } else if (context.wall) {
+            if (block.getY() < 4) return false;
             double noise = getNoise(block, 8.0);
             if (noise > 0) {
                 set(block, Material.SAND);
@@ -785,6 +789,7 @@ final class CaveDecorator {
                 set(block, Material.GRANITE);
             }
         } else if (context.wall) {
+            if (block.getY() < 4) return false;
             double noise = getNoise(block, 8);
             if (noise < 0) {
                 set(block, Material.SAND);
@@ -818,6 +823,7 @@ final class CaveDecorator {
                 set(block, Material.DIRT);
             }
         } else if (context.ceiling || context.wall) {
+            if (block.getY() < 4) return false;
             double noise = getNoise(block, 8);
             if (noise < 0) {
                 set(block, Material.CLAY);
@@ -857,6 +863,7 @@ final class CaveDecorator {
         } else if (context.ceiling) {
             set(block, Material.RED_SANDSTONE);
         } else if (context.wall) {
+            if (block.getY() < 4) return false;
             switch (block.getY() % 7) {
             case 0: set(block, Material.RED_TERRACOTTA); break;
             case 1: set(block, Material.ORANGE_TERRACOTTA); break;
